@@ -1,0 +1,8 @@
+{
+  "name": "TeleExpense v1",
+  "description": "Automatically track, categorize, and manage income and expenses from Telegram messages using smart AI parsing, real-time webhook sync, visual analytics, and budget tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,233 @@
+Date,Time,Month,Type,Amount (INR),Category,Description,Payment Method,Account / Card,Source,Raw Message,Telegram User,Tags,Reimbursement Status,Transaction ID
+2026-11-22,11:26,Nov,EXPENSE,60,Abhishek Dubey,Signature ic,Bank Transfer,IC Bank,telegram,60 signature ic bank,Abhi,,,tx_1795327001074_utb3tf
+2026-11-21,11:17,Nov,INCOME,1750,Gift,Dinesh Ji Ticket,UPI,IC Bank,manual,,Ansh,,,tx_1795326494228_w7any1
+2026-11-20,10:27,Nov,EXPENSE,50,Groceries & Kirana,Yipee,UPI,SBI CC 5733,manual,,Ansh,,,tx_1795320540474_pah1bm
+2026-11-20,10:27,Nov,EXPENSE,157,Personal Care,Serum,UPI,SBI CC 5733,manual,,Ansh,,,tx_1795320528292_k5pxnz
+2026-11-20,10:27,Nov,EXPENSE,35,F&V,Sabji,UPI,SBI CC 5733,manual,,Ansh,,,tx_1795320507256_gm9rdp
+2026-11-20,10:27,Nov,EXPENSE,70,Milk,Doodh,UPI,SBI CC 5733,manual,,Ansh,,,tx_1795320492369_pd1t5q
+2026-11-20,10:27,Nov,EXPENSE,319,Baby Food,Diaper,UPI,SBI CC 5733,manual,,Ansh,,,tx_1795320474152_lig6r7
+2026-11-22,10:27,Nov,EXPENSE,781,Groceries & Kirana,Ration,UPI,SBI CC 5733,manual,,Ansh,,,tx_1795320405720_k851e1
+2026-11-22,10:27,Nov,EXPENSE,70,Milk,Doodh,UPI,SBI CC 5733,manual,,Ansh,,,tx_1795320376909_jwicqi
+2026-11-21,10:27,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795320294735_8uu52h
+2026-11-21,10:27,Nov,EXPENSE,100,Groceries & Kirana,Chaipatti,UPI,IC Bank,manual,,Ansh,,,tx_1795320284281_9o5f3l
+2026-11-21,10:27,Nov,EXPENSE,400,Food & Dining,Chicken,UPI,IC Bank,manual,,Ansh,,,tx_1795320269971_fh91kz
+2026-11-21,10:27,Nov,EXPENSE,15,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795320243180_u8n8a4
+2026-11-21,10:27,Nov,EXPENSE,250,F&V,Sabji,UPI,IC Bank,manual,,Ansh,,,tx_1795320229791_kdi0bm
+2026-11-21,10:27,Nov,EXPENSE,80,Abhishek Dubey,Chai Sign,UPI,IC Bank,manual,,Ansh,,,tx_1795320187397_n5uwl8
+2026-11-21,10:27,Nov,EXPENSE,5,Abhishek Dubey,Misc,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795320169901_jv4qvi
+2026-11-21,10:27,Nov,EXPENSE,78,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795320149080_q71ymd
+2026-11-21,10:27,Nov,EXPENSE,110,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795320131872_jrir17
+2026-11-21,10:27,Nov,EXPENSE,74,Milk,Doodh,UPI,IC Bank,manual,,Ansh,,,tx_1795320117579_m8cmmb
+2026-11-20,10:27,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795320093922_yw1j8y
+2026-11-20,10:27,Nov,EXPENSE,22,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795320077500_z1dcjn
+2026-11-20,10:27,Nov,EXPENSE,27,Milk,Doodh,UPI,IC Bank,manual,,Ansh,,,tx_1795320027211_9wybvj
+2026-11-20,10:27,Nov,EXPENSE,20,Food & Dining,Golgappe,UPI,IC Bank,manual,,Ansh,,,tx_1795320001672_ab4vlm
+2026-11-20,10:27,Nov,INCOME,1000,Gift,Vivek,UPI,IC Bank,manual,,Ansh,,,tx_1795319990349_hdsq47
+2026-11-20,10:27,Nov,EXPENSE,600,Abhishek Dubey,Hair Fixing,UPI,IC Bank,manual,,Ansh,,,tx_1795319968251_p8irc7
+2026-11-20,10:27,Nov,EXPENSE,50,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795319954170_2elzrg
+2026-11-20,10:27,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795319934193_08u7ha
+2026-11-15,11:57,Nov,INCOME,2500,Gift,Gift,UPI,AX Bank,manual,,Ansh,,,tx_1795158074017_lwqfo6
+2026-11-14,11:57,Nov,EXPENSE,5840,CC Payment,CC Bill Pay,UPI,IC Bank,manual,,Ansh,,,tx_1795157971376_idakfm
+2026-11-14,11:57,Nov,EXPENSE,5000,RD,RD,UPI,IC Bank,manual,,Ansh,,,tx_1795157842468_tgd0x6
+2026-11-16,11:57,Nov,EXPENSE,2518.85,Udhaar Given,Misclenious on card,UPI,Axis 2904,manual,,Ansh,,,tx_1795157794881_b711ie
+2026-11-16,11:57,Nov,EXPENSE,2859.48,Family Trip & Pooja,Ticket,UPI,Axis 2904,manual,,Ansh,,,tx_1795157723710_7oz5zi
+2026-11-14,11:57,Nov,EXPENSE,1570.7,Udhaar Given,Scorpio Fuel,UPI,Axis 2904,manual,,Ansh,,,tx_1795157677317_4sqhy8
+2026-11-14,11:57,Nov,EXPENSE,3217,Udhaar Given,Medicine,UPI,Axis 2904,manual,,Ansh,,,tx_1795157647685_e7borj
+2026-11-14,11:57,Nov,EXPENSE,3895,Udhaar Given,USG & Test,UPI,Axis 2904,manual,,Ansh,,,tx_1795157623790_esapzy
+2026-11-18,11:57,Nov,EXPENSE,5000,Udhaar Given,Scorpio Fare,UPI,IC Bank,manual,,Ansh,,,tx_1795157217679_rk0ohb
+2026-11-20,11:57,Nov,EXPENSE,2248.15,CC Payment,2005 Bill Payment,UPI,AX Bank,manual,,Ansh,,,tx_1795157148139_jtedty
+2026-11-20,11:57,Nov,EXPENSE,15000,Misclenious,Bolero EMI,UPI,AX Bank,manual,,Ansh,,,tx_1795157086283_c98mx9
+2026-11-20,11:57,Nov,EXPENSE,2792,Insurance,Insurance,UPI,AX Bank,manual,,Ansh,,,tx_1795157066792_ykgbll
+2026-11-18,11:57,Nov,EXPENSE,34,Family Trip & Pooja,Chips & Pani,UPI,IC Bank,manual,,Ansh,,,tx_1795157021355_dz4x4h
+2026-11-18,11:57,Nov,EXPENSE,223,Family Trip & Pooja,Cab GTNR,UPI,IC Bank,manual,,Ansh,,,tx_1795156998191_5x6r4w
+2026-11-17,11:57,Nov,EXPENSE,100,Family Trip & Pooja,Pani & Khana,UPI,IC Bank,manual,,Ansh,,,tx_1795156947719_5uex24
+2026-11-17,11:57,Nov,EXPENSE,90,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795156922877_kjm8w2
+2026-11-17,11:57,Nov,EXPENSE,35,Udhaar Given,Doodh,UPI,IC Bank,manual,,Ansh,,,tx_1795156905557_j3avfo
+2026-11-17,11:57,Nov,EXPENSE,100,Udhaar Given,Injection Ke Loye (Mishra Med),UPI,IC Bank,manual,,Ansh,,,tx_1795156887018_i4zhqx
+2026-11-17,11:57,Nov,EXPENSE,20,Food & Dining,Bhuja,UPI,IC Bank,manual,,Ansh,,,tx_1795156860298_y10suj
+2026-11-16,11:57,Nov,EXPENSE,120,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795156833038_8mszhy
+2026-11-15,11:57,Nov,EXPENSE,60,Food & Dining,Chaat,UPI,IC Bank,manual,,Ansh,,,tx_1795156800056_74qpwb
+2026-11-14,11:57,Nov,EXPENSE,280,Food & Dining,Hospital Nasta & Khana,UPI,IC Bank,manual,,Ansh,,,tx_1795156783101_vokgly
+2026-11-18,11:57,Nov,EXPENSE,172,Family Trip & Pooja,Didi ke ghat doodh bread,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156691347_v9sr16
+2026-11-18,11:57,Nov,EXPENSE,64,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156667436_7ebw75
+2026-11-18,11:57,Nov,EXPENSE,1060.82,Misclenious,Domain Renewel,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156619658_xtrusc
+2026-11-18,11:57,Nov,EXPENSE,430,Reimbursement,Daru,UPI,ICICI CC 0000,manual,,Ansh,,pending,tx_1795156566797_qty1lz
+2026-11-18,11:57,Nov,EXPENSE,130,Food & Dining,Fish,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156550694_w394as
+2026-11-18,11:57,Nov,EXPENSE,68,Food & Dining,Chakhan,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156536367_3dfdst
+2026-11-18,11:57,Nov,EXPENSE,98,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156519154_ukarjf
+2026-11-18,11:57,Nov,EXPENSE,2101,Udhaar Given,Medicine at Hospital,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156500158_m5rtj8
+2026-11-17,11:57,Nov,EXPENSE,95,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156459174_37sm01
+2026-11-17,11:57,Nov,EXPENSE,20,Food & Dining,Pakora,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156424910_icjx1v
+2026-11-17,11:57,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156408783_4lgrot
+2026-11-17,11:57,Nov,EXPENSE,2940,Udhaar Given,Injection ke liye (Mishra Med),UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156390799_42v04l
+2026-11-17,11:57,Nov,EXPENSE,165,Family Trip & Pooja,Gujiya Thawe,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156332669_qzmmjr
+2026-11-16,11:57,Nov,EXPENSE,85,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156308714_w7gutl
+2026-11-16,11:57,Nov,EXPENSE,480,Baby Food,Diaper & Cerelac,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156286417_6pnvk2
+2026-11-16,11:57,Nov,EXPENSE,90,Abhishek Dubey,Signtaure,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156262228_71h10n
+2026-11-15,11:57,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156235983_kocxyn
+2026-11-15,11:57,Nov,EXPENSE,105,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156222804_6eaerg
+2026-11-15,11:57,Nov,EXPENSE,20,Food & Dining,Golgappe,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156207243_6tec7m
+2026-11-15,11:57,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156181316_o2gubc
+2026-11-15,11:57,Nov,EXPENSE,61,Abhishek Dubey,Signatrue,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795156155910_k5xgm2
+2026-11-14,11:43,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795155312708_u5wb1v
+2026-11-14,11:43,Nov,EXPENSE,45,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795155300019_uesld8
+2026-11-14,11:43,Nov,EXPENSE,15,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795155287479_v6d612
+2026-11-14,11:43,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795155271972_e8ss9s
+2026-11-14,10:48,Nov,EXPENSE,90,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1795154826338_kz866b
+2026-11-20,10:48,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795154763291_jyv941
+2026-11-19,10:48,Nov,EXPENSE,50,Food & Dining,Snacks,UPI,IC Bank,manual,,Ansh,,,tx_1795154745431_5tjly5
+2026-11-19,10:48,Nov,EXPENSE,203,F&V,Sabji,UPI,IC Bank,manual,,Ansh,,,tx_1795154732784_7wowa3
+2026-11-19,10:48,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795154718205_ba3tda
+2026-11-19,10:48,Nov,EXPENSE,163,Health & Medical,Dawai,UPI,IC Bank,manual,,Ansh,,,tx_1795154705617_uiz818
+2026-11-19,10:48,Nov,EXPENSE,98,Fuel & Transporation,Rapido Bike for Vikram,UPI,IC Bank,manual,,Ansh,,,tx_1795154692837_ahe8ug
+2026-11-19,10:48,Nov,EXPENSE,357,Baby Food,Cerelac & Daliya,UPI,IC Bank,manual,,Ansh,,,tx_1795154657175_p2v14v
+2026-11-19,10:48,Nov,EXPENSE,100,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795154625761_0ckcy1
+2026-11-19,10:48,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1795154610379_al2xyd
+2026-11-19,08:44,Nov,EXPENSE,60,Abhishek Dubey,Signature ic,Bank Transfer,IC Bank,telegram,60 Signature ic bank,Abhi,,,tx_1795058097539_j5f0ax
+2026-11-19,08:43,Nov,EXPENSE,165,Fuel & Transporation,Cab ic,Bank Transfer,IC Bank,telegram,165 cab ic bank,Abhi,,,tx_1795058018788_8amq46
+2026-11-13,19:18,Nov,EXPENSE,180,F&V,Nariyal pani,UPI/Cash,ICICI CC 0000,telegram,180 Nariyal pani,Abhi,,,tx_1794577696349_ofsamw
+2026-11-13,19:18,Nov,EXPENSE,30,Food & Dining,Coke,Card,ICICI CC 0000,telegram,30 Coke,Abhi,,,tx_1794577696349_x3lrq2
+2026-11-13,18:25,Nov,EXPENSE,75,Abhishek Dubey,Signature,Card,ICICI CC 0000,telegram,75 signature 00,Abhi,,,tx_1794574545978_2zdct1
+2026-11-01,13:52,Nov,EXPENSE,1521,Family Trip & Pooja,Shoes,UPI,SBI CC 6526,manual,,Ansh,,,tx_1794558714250_3s4zu4
+2026-11-13,13:52,Nov,EXPENSE,53450,Wife Transfer,Savings,UPI,AX Bank,manual,,Ansh,,,tx_1794558589625_f30m94
+2026-11-13,13:52,Nov,INCOME,53450,Gift,Vendor se mila,UPI,AX Bank,manual,,Ansh,,,tx_1794558572576_weg9wu
+2026-11-13,12:09,Nov,INCOME,3805,Udhaar Recovery,Udhaar wapas mila: Medical Rim,Bank Transfer,AX Bank,manual,,Ansh,"udhaar, settled, medical rim",,tx_1794551941325_su3u5e
+2026-11-13,11:45,Nov,INCOME,81,Udhaar Recovery,Udhaar wapas mila: Abhishek K,Bank Transfer,AX Bank,manual,,Ansh,"udhaar, settled, abhishek k",,tx_1794550524251_ysu7r0
+2026-11-07,20:03,Nov,EXPENSE,8657,CC Payment,SBI CC Payment,UPI,AX Bank,manual,,Ansh,,,tx_1794550295119_22glyi
+2026-11-05,20:03,Nov,EXPENSE,974,Family Trip & Pooja,Panty Bra,UPI,IC Bank,manual,,Ansh,,,tx_1794550215822_bfuefg
+2026-11-12,20:03,Nov,EXPENSE,105,Reimbursement,Signature,UPI,ICICI CC 0000,manual,,Ansh,,pending,tx_1794550157379_nvc8uu
+2026-11-12,20:03,Nov,EXPENSE,125,Reimbursement,Chakhna,UPI,IC Bank,manual,,Ansh,,pending,tx_1794550140834_wmfksu
+2026-11-12,20:03,Nov,EXPENSE,80,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794550118120_vz51r7
+2026-11-11,20:03,Nov,EXPENSE,355,Reimbursement,Chakhna,UPI,IC Bank,manual,,Ansh,,pending,tx_1794550094690_hbv1er
+2026-11-11,20:03,Nov,EXPENSE,110,F&V,Sabzi,UPI,IC Bank,manual,,Ansh,,,tx_1794550077398_3owqyt
+2026-11-11,20:03,Nov,EXPENSE,1940,Family Trip & Pooja,Abhi Clothes,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794550054663_3c5pq1
+2026-11-11,20:03,Nov,EXPENSE,780,Family Trip & Pooja,Duggu Chath Clothes,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794550010216_hxbe9m
+2026-11-11,20:03,Nov,EXPENSE,1220,Family Trip & Pooja,Gunnu Chhath Clothes,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794549987872_0k8xvh
+2026-11-11,20:03,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794548313946_k7w2bn
+2026-11-11,20:03,Nov,EXPENSE,30,Food & Dining,Golgappe,UPI,IC Bank,manual,,Ansh,,,tx_1794548292668_xh5w2w
+2026-11-11,20:03,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794548175818_uh2q45
+2026-11-10,20:03,Nov,EXPENSE,90,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794548161137_hpi5dv
+2026-11-10,20:03,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794548149248_tu7iq3
+2026-11-10,20:03,Nov,EXPENSE,345,Food & Dining,Pizza,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794548135010_1h3x68
+2026-11-10,20:03,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794548119826_9fprm0
+2026-11-09,20:03,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794548104591_zzpgb0
+2026-11-09,20:03,Nov,EXPENSE,280,Baby Food,Cerelac,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794548067664_k2oyey
+2026-11-09,20:03,Nov,EXPENSE,30,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794548049773_v30w30
+2026-11-09,20:03,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547985509_hywfsm
+2026-11-09,20:03,Nov,EXPENSE,25,Food & Dining,Dahi,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547968713_hk1v32
+2026-11-08,20:03,Nov,EXPENSE,90,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547941826_0crvj7
+2026-11-08,20:03,Nov,EXPENSE,1400,Family Trip & Pooja,Taxi Village,UPI,IC Bank,manual,,Ansh,,,tx_1794547919170_iap79m
+2026-11-08,20:03,Nov,EXPENSE,500,Family Trip & Pooja,Gaw Mithai,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547895839_sttjmg
+2026-11-08,20:03,Nov,EXPENSE,70,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547879196_feebxg
+2026-11-08,20:03,Nov,EXPENSE,81,Udhaar Given,Udhaar Diya,UPI,IC Bank,manual,,Ansh,,,tx_1794547858018_76h10l
+2026-11-08,20:03,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547825313_jm2cxg
+2026-11-08,20:03,Nov,EXPENSE,60,Family Trip & Pooja,Pani,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547810732_9xnb41
+2026-11-08,20:03,Nov,EXPENSE,14,Personal Care,Shampoo,UPI,IC Bank,manual,,Ansh,,,tx_1794547754962_je4i36
+2026-11-08,20:03,Nov,EXPENSE,15,Personal Care,Shampoo,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547736586_f4jec0
+2026-11-08,20:03,Nov,EXPENSE,2280,Family Trip & Pooja,Crackers,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547549041_z8rbrr
+2026-11-08,20:03,Nov,EXPENSE,70,Food & Dining,Samosa,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547527757_9pfcxi
+2026-11-08,20:03,Nov,EXPENSE,87,Family Trip & Pooja,Pooja Saman,UPI,IC Bank,manual,,Ansh,,,tx_1794547503481_aptppp
+2026-11-08,20:03,Nov,EXPENSE,25,Family Trip & Pooja,Diya,UPI,IC Bank,manual,,Ansh,,,tx_1794547483355_ugv3h8
+2026-11-08,20:03,Nov,EXPENSE,330,Family Trip & Pooja,Mithai (170 Piyush),UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547466669_4uslx5
+2026-11-07,20:03,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1794547410631_7hl0el
+2026-11-07,20:03,Nov,EXPENSE,800,Misclenious,Mobile Repairing,UPI,IC Bank,manual,,Ansh,,,tx_1794547390118_01sq2f
+2026-11-07,20:03,Nov,EXPENSE,260,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794547289125_jbk5xo
+2026-11-07,20:03,Nov,EXPENSE,20,Abhishek Dubey,Pani,UPI,IC Bank,manual,,Ansh,,,tx_1794546073235_qeh9lh
+2026-11-07,20:03,Nov,EXPENSE,30,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794546058969_4o6znb
+2026-11-07,20:03,Nov,EXPENSE,15,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794546029607_vcfhtk
+2026-11-07,20:03,Nov,EXPENSE,90,Food & Dining,Gulabnamun & Lassi,UPI,IC Bank,manual,,Ansh,,,tx_1794546014003_15b3gy
+2026-11-06,20:03,Nov,EXPENSE,20,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545821579_0zeciz
+2026-11-06,20:03,Nov,EXPENSE,15,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1794545802217_hhbkqs
+2026-11-06,20:03,Nov,EXPENSE,20,Food & Dining,Gulabjamun,UPI,IC Bank,manual,,Ansh,,,tx_1794545772213_l82u9i
+2026-11-06,20:03,Nov,EXPENSE,82,Food & Dining,Breakfast,UPI,IC Bank,manual,,Ansh,,,tx_1794545754625_u3hjrw
+2026-11-06,20:03,Nov,EXPENSE,20,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545739473_orrc6b
+2026-11-06,20:03,Nov,EXPENSE,60,Abhishek Dubey,Signtaure,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545726977_f5rc3r
+2026-11-06,20:03,Nov,EXPENSE,301.09,Food & Dining,Dinner,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545712834_j4vcz7
+2026-11-06,20:03,Nov,EXPENSE,499,Family Trip & Pooja,Hotel Stay,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545697343_4nwgc8
+2026-11-06,20:03,Nov,EXPENSE,193,Family Trip & Pooja,Dahnteras,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545682577_imltdw
+2026-11-06,20:03,Nov,EXPENSE,30,Groceries & Kirana,Parle G,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545662770_7jie8x
+2026-11-06,20:03,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545644131_0l88xi
+2026-11-06,20:03,Nov,EXPENSE,65,Health & Medical,Naak Ki Dwa,UPI,IC Bank,manual,,Ansh,,,tx_1794545598606_xaobyr
+2026-11-06,20:03,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545586409_eqqt9x
+2026-11-06,20:03,Nov,EXPENSE,23,Abhishek Dubey,Signaure,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545576949_neohvl
+2026-11-06,20:03,Nov,EXPENSE,30,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545539673_ktfe13
+2026-11-06,20:03,Nov,EXPENSE,75,Food & Dining,Lunch,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545516385_qeqe8t
+2026-11-05,20:03,Nov,EXPENSE,700,Misclenious,Gift Diya (Babu Mobile),UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545496242_yhqcps
+2026-11-05,20:03,Nov,EXPENSE,45,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545472142_wg4cxi
+2026-11-05,20:03,Nov,EXPENSE,65,Abhishek Dubey,Signtaure,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545459849_5i9zl0
+2026-11-05,20:03,Nov,EXPENSE,40,Food & Dining,Litti,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545433031_j3wfer
+2026-11-05,20:03,Nov,EXPENSE,100,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1794545405582_ej1bsv
+2026-11-05,20:03,Nov,EXPENSE,70,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545385660_k04q9n
+2026-11-05,20:03,Nov,EXPENSE,118,Family Trip & Pooja,Train Food,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545368362_pyu9sz
+2026-11-05,20:03,Nov,EXPENSE,216,Fuel & Transporation,GTNR Cab,UPI,IC Bank,manual,,Ansh,,,tx_1794545334092_4ay277
+2026-11-05,20:03,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545320980_8moosr
+2026-11-05,20:03,Nov,EXPENSE,35,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545308057_ohd06n
+2026-11-05,20:03,Nov,EXPENSE,20,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545291617_v8yjxl
+2026-11-05,20:03,Nov,EXPENSE,35,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545280692_6iq6b1
+2026-11-05,20:03,Nov,EXPENSE,20,Food & Dining,Golgappe,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545260333_asucsd
+2026-11-05,20:03,Nov,EXPENSE,81,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545237724_m5e9ts
+2026-11-04,20:03,Nov,EXPENSE,50,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545219686_u8oavd
+2026-11-04,20:03,Nov,EXPENSE,350,Food & Dining,Chicken,UPI,IC Bank,manual,,Ansh,,,tx_1794545205020_1evebx
+2026-11-04,20:03,Nov,EXPENSE,34,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545190616_9io0bz
+2026-11-04,20:03,Nov,EXPENSE,416,Food & Dining,PIzza,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545146759_kryiwz
+2026-11-04,20:03,Nov,EXPENSE,64,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545132291_x7onzy
+2026-11-04,20:03,Nov,EXPENSE,203,Fuel & Transporation,GTNR Cab,UPI,IC Bank,manual,,Ansh,,,tx_1794545112395_hhgehh
+2026-11-04,20:03,Nov,EXPENSE,20,Family Trip & Pooja,Tea,UPI,IC Bank,manual,,Ansh,,,tx_1794545094737_pvvxs6
+2026-11-03,20:03,Nov,EXPENSE,28,Family Trip & Pooja,Pani,UPI,IC Bank,manual,,Ansh,,,tx_1794545076454_75hsbf
+2026-11-03,20:03,Nov,EXPENSE,107,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545060759_mgm898
+2026-11-03,20:03,Nov,EXPENSE,290,Fuel & Transporation,JP JN Cab,UPI,IC Bank,manual,,Ansh,,,tx_1794545043675_1he4gz
+2026-11-03,20:03,Nov,EXPENSE,120,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1794545024623_ylv97c
+2026-11-03,20:03,Nov,EXPENSE,110,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794545009013_vakmy2
+2026-11-03,20:03,Nov,EXPENSE,40,Food & Dining,Golgappe,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794544979179_9e6h0d
+2026-11-03,20:03,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794544941687_mberab
+2026-11-03,20:03,Nov,EXPENSE,70,F&V,Papita,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794544927958_poocj5
+2026-11-03,20:03,Nov,EXPENSE,75,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1794544884452_oxngah
+2026-11-03,20:03,Nov,EXPENSE,50,Food & Dining,Lunch,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794544865133_i1jn4o
+2026-11-03,20:03,Nov,EXPENSE,65,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794544852182_ada1g0
+2026-11-03,20:03,Nov,EXPENSE,300,Family Trip & Pooja,Dhobi,UPI,IC Bank,manual,,Ansh,,,tx_1794544830300_6cunqh
+2026-11-03,20:03,Nov,EXPENSE,57,Health & Medical,Dawa,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794544793760_ge8hoy
+2026-11-03,20:03,Nov,EXPENSE,80,Food & Dining,Tea,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794544770629_aqad85
+2026-11-02,20:03,Nov,EXPENSE,55,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794544745103_lxuvsv
+2026-11-02,20:03,Nov,EXPENSE,175,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794544730319_7fpx5x
+2026-11-02,20:03,Nov,EXPENSE,30,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794544710866_kao5a6
+2026-11-02,20:03,Nov,EXPENSE,70,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1794544687201_iffyzk
+2026-11-07,17:37,Nov,EXPENSE,5600,Udhaar Given,Udhaar diya: Piyush Tiwari (Medicine (Priya Card)),Card,Axis 2904,manual,,Ansh,"udhaar, piyush tiwari, udhaar-lent",,tx_1794312478869_fgtx7c
+2026-11-07,17:37,Nov,EXPENSE,39652,Udhaar Given,Udhaar diya: Piyush Tiwari (Final Bill (Priya Card)),Card,Axis 2904,manual,,Ansh,"udhaar, piyush tiwari, udhaar-lent",,tx_1794312452038_9vjgub
+2026-11-06,17:36,Nov,EXPENSE,50000,Udhaar Given,Udhaar diya: Piyush Tiwari (Operation ke liye (Priya Card)),Card,Axis 2904,manual,,Ansh,"udhaar, piyush tiwari, udhaar-lent",,tx_1794312409287_5imgor
+2026-11-10,11:38,Nov,EXPENSE,11040,Room Rent & Electricity Bill,Room rent,Bank Transfer,AX Bank,telegram,11040 Room rent,Abhi,,,tx_1794290909727_lzb4h3
+2026-11-04,23:19,Nov,EXPENSE,350,Food & Dining,Food,UPI/Cash,ICICI CC 0000,telegram,350 food,Abhi,,,tx_1793814633924_8dr10w
+2026-11-02,19:26,Nov,INCOME,1250,Udhaar Recovery,Udhaar wapas mila: Abhishek K,Bank Transfer,AX Bank,manual,,Ansh,"udhaar, settled, abhishek k",,tx_1793627814388_yazc5b
+2026-11-02,19:26,Nov,INCOME,980,Udhaar Recovery,Udhaar wapas mila: Abhishek K,Bank Transfer,AX Bank,manual,,Ansh,"udhaar, settled, abhishek k",,tx_1793627812557_x5dngm
+2026-11-02,18:45,Nov,INCOME,287,Salary & Employment,Pata Nahi Kaise Badh Gaya,UPI,AX Bank,manual,,Ansh,,,tx_1793626416707_jnmcnr
+2026-11-02,18:45,Nov,INCOME,343,Salary & Employment,FK Return,UPI,AX Bank,manual,,Ansh,,,tx_1793626400200_hqsno7
+2026-11-02,18:45,Nov,EXPENSE,2655.22,Family Trip & Pooja,JPR to GTNR (Train),UPI,SBI CC 6526,manual,,Ansh,,,tx_1793626276611_gzb1wt
+2026-11-02,18:45,Nov,EXPENSE,28.76,Groceries & Kirana,Burbon,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793626047069_niv42w
+2026-11-02,18:45,Nov,EXPENSE,58.46,Groceries & Kirana,Monaco,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793626033950_e4h196
+2026-11-02,18:45,Nov,EXPENSE,295,Baby Food,Cerelac,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793626015586_87nc73
+2026-11-02,18:45,Nov,EXPENSE,1062.78,Family Trip & Pooja,Bag,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625999517_cg6ns1
+2026-11-02,18:45,Nov,EXPENSE,80,Fuel & Transporation,Hosp Cab,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625969294_bbxcqg
+2026-11-02,18:45,Nov,EXPENSE,242,Health & Medical,Medicine,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625955013_awzor6
+2026-11-02,18:45,Nov,EXPENSE,87,Fuel & Transporation,Hosp Cab,UPI,IC Bank,manual,,Ansh,,,tx_1793625934689_bweyjr
+2026-11-02,18:45,Nov,EXPENSE,50,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625910809_kq4ssk
+2026-11-02,18:45,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,IC Bank,manual,,Ansh,,,tx_1793625874918_cxoerc
+2026-11-02,18:45,Nov,EXPENSE,70,Milk,Doodh,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625859170_gqj8ge
+2026-11-02,18:45,Nov,EXPENSE,125,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625843157_hrmkqy
+2026-11-01,18:45,Nov,EXPENSE,450,Family Trip & Pooja,Winter Baby Clothes,UPI,IC Bank,manual,,Ansh,,,tx_1793625619806_li2i0x
+2026-11-01,18:45,Nov,EXPENSE,130,Food & Dining,Manchurian,UPI,AX Bank,manual,,Ansh,,,tx_1793625577574_384v2w
+2026-11-01,18:45,Nov,EXPENSE,750,Family Trip & Pooja,Winter Baby Clothes,UPI,AX Bank,manual,,Ansh,,,tx_1793625567584_7h9ebf
+2026-11-01,18:45,Nov,EXPENSE,1900,Family Trip & Pooja,Winter Baby Clothes,UPI,AX Bank,manual,,Ansh,,,tx_1793625540017_qsqx5x
+2026-11-01,18:45,Nov,EXPENSE,20,F&V,Pyaz,UPI,IC Bank,manual,,Ansh,,,tx_1793625480649_68i7l9
+2026-11-01,18:45,Nov,EXPENSE,55,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625459607_9yn9bv
+2026-11-01,10:45,Nov,EXPENSE,80,F&V,Apple,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625426145_gfv2nn
+2026-11-01,10:00,Nov,EXPENSE,40,Food & Dining,Gol Gappe,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625330705_d539my
+2026-11-01,10:00,Nov,EXPENSE,1650,Family Trip & Pooja,Winter Baby Clothes,UPI,IC Bank,manual,,Ansh,,,tx_1793625294494_q08tiy
+2026-11-01,10:00,Nov,EXPENSE,100,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625261230_f8mbu8
+2026-11-01,10:00,Nov,EXPENSE,444.72,Fuel & Transporation,Scooty Petrol,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625246409_5j3u1h
+2026-11-01,10:00,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625229257_srzrpl
+2026-11-01,10:00,Nov,EXPENSE,60,Abhishek Dubey,Signature,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625211447_wu8mqj
+2026-11-01,10:00,Nov,EXPENSE,62,Groceries & Kirana,Chini,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625201472_ziz5bj
+2026-11-01,10:00,Nov,EXPENSE,35,Milk,Doodh,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625159272_1l07ql
+2026-11-01,10:00,Nov,EXPENSE,188,Personal Care,Baby Denatl,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625135803_y1jk03
+2026-11-01,10:00,Nov,EXPENSE,296,Baby Food,Diaper,UPI,ICICI CC 0000,manual,,Ansh,,,tx_1793625108651_yre63s
+2026-11-01,10:00,Nov,INCOME,30560,Gift,Icify Gift,UPI,AX Bank,manual,,Ansh,,,tx_1793625006661_esa9m1
+2026-11-02,10:00,Nov,INCOME,108272,Salary & Employment,Salary,UPI,AX Bank,manual,,Ansh,,,tx_1793624976919_wg5472
