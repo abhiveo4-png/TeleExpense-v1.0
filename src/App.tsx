@@ -26,6 +26,9 @@ import { LedgerView } from './components/LedgerView';
 import { TransactionModal } from './components/TransactionModal';
 import { AuthModal } from './components/AuthModal';
 
+const CashflowView = lazy(() =>
+  import('./components/CashflowView').then((m) => ({ default: m.CashflowView }))
+);
 const AccountsView = lazy(() =>
   import('./components/AccountsView').then((m) => ({ default: m.AccountsView }))
 );
@@ -180,6 +183,28 @@ export default function App() {
     };
     init();
   }, [fetchUsers, fetchAllWorkspaceData]);
+
+  // Open native calendar picker whenever user clicks anywhere inside any <input type="date">
+  useEffect(() => {
+    const handleDateClick = (e: MouseEvent) => {
+      const target = e.target as HTMLInputElement | null;
+      if (
+        target &&
+        target.tagName === 'INPUT' &&
+        target.type === 'date' &&
+        !target.disabled &&
+        !target.readOnly
+      ) {
+        try {
+          (target as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
+        } catch {
+          // Ignore browsers where showPicker is unsupported or restricted
+        }
+      }
+    };
+    document.addEventListener('click', handleDateClick);
+    return () => document.removeEventListener('click', handleDateClick);
+  }, []);
 
   // Smart visibility-aware sync version check (every 12s when tab is active)
   const lastVersionRef = useRef<number | null>(null);
@@ -390,6 +415,17 @@ export default function App() {
                 onToggleCategoryExclude={handleToggleCategoryExclude}
                 onBulkToggleCategoryExclude={handleBulkToggleCategoryExclude}
                 onSettleReimbursement={handleSettleReimbursement}
+              />
+            )}
+
+            {activeTab === 'cashflow' && (
+              <CashflowView
+                transactions={transactions}
+                balances={balances}
+                selectedMonth={selectedMonth}
+                userRole={userRole}
+                activeFamilyMemberName={activeFamilyMemberName}
+                isPrivacyMode={isPrivacyMode}
               />
             )}
 

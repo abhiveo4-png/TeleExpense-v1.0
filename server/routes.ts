@@ -16,6 +16,7 @@ import {
   isGeminiConfigured,
   parseMessageWithGemini,
 } from './geminiService.js';
+import { calculateInvestmentMetrics } from './investmentCalculator.js';
 import {
   computeAccountBalances,
   computeDailyLimits,
@@ -2113,30 +2114,85 @@ export function createApiRouter(): Router {
     const user = req.activeUser!;
     const store = getUserData(user.id);
     const b = req.body || {};
+    const parseOptNum = (val: unknown): number | undefined => {
+      if (val === undefined || val === null || val === '') return undefined;
+      const n = Number(val);
+      return Number.isFinite(n) && n >= 0 ? n : undefined;
+    };
     const inv: InvestmentRecord = {
       id: `inv_${Date.now()}`,
       userId: user.id,
       type: b.type || 'Mutual Fund',
       name: String(b.name || 'New Investment').trim(),
       amount: Number(b.amount || 0),
-      monthlyAmount: b.monthlyAmount ? Number(b.monthlyAmount) : undefined,
-      paidInstallments: b.paidInstallments ? Number(b.paidInstallments) : 0,
-      totalInstallments: b.totalInstallments ? Number(b.totalInstallments) : undefined,
+      monthlyAmount: parseOptNum(b.monthlyAmount),
+      paidInstallments: parseOptNum(b.paidInstallments) ?? 0,
+      totalInstallments: parseOptNum(b.totalInstallments),
       installmentFrequency: b.installmentFrequency || 'monthly',
       account: String(b.account || 'AX Bank'),
       date: String(b.date || getIstDateTime().date),
       maturityDate: b.maturityDate ? String(b.maturityDate) : undefined,
-      interestRate: b.interestRate ? Number(b.interestRate) : undefined,
-      currentValue: b.currentValue ? Number(b.currentValue) : undefined,
-      maturityAmount: b.maturityAmount ? Number(b.maturityAmount) : undefined,
+      interestRate: parseOptNum(b.interestRate),
+      currentValue: parseOptNum(b.currentValue),
+      maturityAmount: parseOptNum(b.maturityAmount),
       autoDebitEnabled: Boolean(b.autoDebitEnabled),
-      autoDebitDay: b.autoDebitDay ? Number(b.autoDebitDay) : undefined,
+      autoDebitDay: parseOptNum(b.autoDebitDay),
       notes: b.notes ? String(b.notes) : undefined,
       createdAt: new Date().toISOString(),
     };
+    if (inv.maturityDate && inv.date) {
+      const m = calculateInvestmentMetrics(inv);
+      if (m.tenureMonths > 0) inv.totalInstallments = m.totalInstallments;
+    }
     store.investments.unshift(inv);
     saveUserData(user.id, store);
     res.status(201).json({ success: true, investments: store.investments });
+  });
+
+  router.patch('/investments/:id', (req: AuthedRequest, res) => {
+    const user = req.activeUser!;
+    const store = getUserData(user.id);
+    const inv = store.investments.find(i => i.id === req.params.id);
+    if (!inv) {
+      res.status(404).json({ error: 'Investment not found.' });
+      return;
+    }
+    const b = req.body || {};
+    const parseOptNum = (val: unknown): number | undefined => {
+      if (val === undefined || val === null || val === '') return undefined;
+      const n = Number(val);
+      return Number.isFinite(n) && n >= 0 ? n : undefined;
+    };
+
+    if (b.type !== undefined) inv.type = b.type;
+    if (b.name !== undefined && String(b.name).trim()) inv.name = String(b.name).trim();
+    if (b.amount !== undefined && Number.isFinite(Number(b.amount))) inv.amount = Math.max(0, Number(b.amount));
+    if (b.monthlyAmount !== undefined) inv.monthlyAmount = parseOptNum(b.monthlyAmount);
+    if (b.paidInstallments !== undefined) inv.paidInstallments = parseOptNum(b.paidInstallments) ?? 0;
+    if (b.totalInstallments !== undefined) inv.totalInstallments = parseOptNum(b.totalInstallments);
+    if (b.installmentFrequency !== undefined) inv.installmentFrequency = b.installmentFrequency || 'monthly';
+    if (b.account !== undefined) inv.account = String(b.account || 'AX Bank');
+    if (b.date !== undefined && String(b.date).trim()) inv.date = String(b.date).trim();
+    if (b.maturityDate !== undefined) {
+      inv.maturityDate = b.maturityDate ? String(b.maturityDate).slice(0, 10) : undefined;
+      if (!inv.maturityDate && b.totalInstallments === undefined) {
+        inv.totalInstallments = undefined;
+      }
+    }
+    if (b.interestRate !== undefined) inv.interestRate = parseOptNum(b.interestRate);
+    if (b.currentValue !== undefined) inv.currentValue = parseOptNum(b.currentValue);
+    if (b.maturityAmount !== undefined) inv.maturityAmount = parseOptNum(b.maturityAmount);
+    if (b.autoDebitEnabled !== undefined) inv.autoDebitEnabled = Boolean(b.autoDebitEnabled);
+    if (b.autoDebitDay !== undefined) inv.autoDebitDay = parseOptNum(b.autoDebitDay);
+    if (b.notes !== undefined) inv.notes = b.notes ? String(b.notes) : undefined;
+
+    if (inv.maturityDate && inv.date) {
+      const m = calculateInvestmentMetrics(inv);
+      if (m.tenureMonths > 0) inv.totalInstallments = m.totalInstallments;
+    }
+
+    saveUserData(user.id, store);
+    res.json({ success: true, investment: inv, investments: store.investments });
   });
 
   router.post('/investments/:id/pay-installment', (req: AuthedRequest, res) => {
@@ -2175,6 +2231,9 @@ export function createApiRouter(): Router {
       isInvestment: true,
     });
     inv.amount += amt;
+    if (inv.currentValue && inv.currentValue > 0) {
+      inv.currentValue += amt;
+    }
     inv.paidInstallments = (inv.paidInstallments || 0) + 1;
     inv.lastAutoDebitMonth = ist.month;
     saveUserData(user.id, store);
@@ -2673,8 +2732,26 @@ export function createApiRouter(): Router {
       return out;
     });
 
+    const numOrUndef = (v: unknown) =>
+      v !== undefined && v !== null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : undefined;
     const restoredInvestments = mergeSheetById(store.investments, incomingInvestments, (raw) =>
-      raw.name ? { ...raw, id: String(raw.id || `inv_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`), userId: user.id, amount: Number(raw.amount || 0) } : null
+      raw.name
+        ? {
+            ...raw,
+            id: String(raw.id || `inv_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`),
+            userId: user.id,
+            amount: Number(raw.amount || 0),
+            monthlyAmount: numOrUndef(raw.monthlyAmount),
+            paidInstallments: numOrUndef(raw.paidInstallments),
+            totalInstallments: numOrUndef(raw.totalInstallments),
+            maturityDate: raw.maturityDate ? String(raw.maturityDate).slice(0, 10) : undefined,
+            interestRate: numOrUndef(raw.interestRate),
+            currentValue: numOrUndef(raw.currentValue),
+            maturityAmount: numOrUndef(raw.maturityAmount),
+            autoDebitDay: numOrUndef(raw.autoDebitDay),
+            autoDebitEnabled: toBool(raw.autoDebitEnabled),
+          }
+        : null
     );
 
     const restoredFuel = mergeSheetById(store.fuelLogs, incomingFuelLogs, (raw) =>
@@ -3011,9 +3088,14 @@ export function createApiRouter(): Router {
 
   // ---------------- Telegram & AI Routes ----------------
   router.get('/telegram/config', async (req, res) => {
-    await refreshTelegramBotInfo();
+    try {
+      await refreshTelegramBotInfo();
+    } catch {
+      // Never fail config fetch if Telegram API is temporarily unreachable
+    }
     const cfg = getBotConfig();
-    const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+    const rawHostUrl = `${req.protocol}://${req.get('host')}`;
+    const appUrl = (process.env.APP_URL || rawHostUrl).replace(/\/+$/, '');
     const activeToken = getActiveBotToken();
     const maskedToken = activeToken
       ? `${activeToken.slice(0, 6)}••••${activeToken.slice(-4)}`
@@ -3031,53 +3113,80 @@ export function createApiRouter(): Router {
   });
 
   router.post('/telegram/config', async (req, res) => {
-    const rawToken = String(req.body?.botToken || '').trim();
-    if (!rawToken || !/^\d{6,15}:[A-Za-z0-9_-]{25,}$/.test(rawToken)) {
-      res.status(400).json({ error: 'Invalid Telegram Bot Token format.' });
-      return;
+    try {
+      const rawToken = String(req.body?.botToken || '').trim();
+      if (!rawToken || !/^\d{6,15}:[A-Za-z0-9_-]{25,}$/.test(rawToken)) {
+        res.status(400).json({ error: 'Invalid Telegram Bot Token format.' });
+        return;
+      }
+      const me = await callTelegramApi(rawToken, 'getMe');
+      if (!me.ok) {
+        res.status(400).json({ error: me.description || 'Telegram rejected this bot token.' });
+        return;
+      }
+      const cfg = getBotConfig();
+      saveBotConfig({
+        ...cfg,
+        botToken: rawToken,
+        isConnected: true,
+        botUsername: me.result?.username,
+        botName: me.result?.first_name,
+        lastError: undefined,
+      });
+      await syncBotCommands(rawToken);
+      res.json({ success: true, botUsername: me.result?.username, botName: me.result?.first_name });
+    } catch (err: any) {
+      res.status(502).json({ error: err?.message || 'Failed to verify Telegram bot token.' });
     }
-    const me = await callTelegramApi(rawToken, 'getMe');
-    if (!me.ok) {
-      res.status(400).json({ error: me.description || 'Telegram rejected this bot token.' });
-      return;
-    }
-    const cfg = getBotConfig();
-    saveBotConfig({
-      ...cfg,
-      botToken: rawToken,
-      isConnected: true,
-      botUsername: me.result?.username,
-      botName: me.result?.first_name,
-      lastError: undefined,
-    });
-    await syncBotCommands(rawToken);
-    res.json({ success: true, botUsername: me.result?.username, botName: me.result?.first_name });
   });
 
   router.post('/telegram/set-webhook', async (req, res) => {
-    const token = getActiveBotToken();
-    if (!token) {
-      res.status(400).json({ error: 'Configure a Telegram Bot Token first.' });
-      return;
+    try {
+      const token = getActiveBotToken();
+      if (!token) {
+        res.status(400).json({ error: 'Configure a Telegram Bot Token first.' });
+        return;
+      }
+      const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+      let webhookUrl = String(req.body?.webhookUrl || `${appUrl}/api/telegram/webhook`).trim();
+      if (webhookUrl.startsWith('http://') && !webhookUrl.includes('localhost') && !webhookUrl.includes('127.0.0.1')) {
+        webhookUrl = webhookUrl.replace(/^http:\/\//i, 'https://');
+      }
+
+      const result = await callTelegramApi(token, 'setWebhook', { url: webhookUrl });
+      if (!result.ok) {
+        const errMsg = result.description || 'Failed to set webhook.';
+        const cfg = getBotConfig();
+        saveBotConfig({ ...cfg, lastError: errMsg });
+        res.status(400).json({ error: errMsg });
+        return;
+      }
+
+      const cfg = getBotConfig();
+      saveBotConfig({
+        ...cfg,
+        isWebhookSet: true,
+        webhookUrl,
+        lastError: undefined,
+      });
+      await syncBotCommands(token);
+      await refreshTelegramBotInfo();
+      res.json({ success: true, webhookUrl, config: getBotConfig() });
+    } catch (err: any) {
+      res.status(502).json({ error: err?.message || 'Failed to activate Telegram webhook.' });
     }
-    const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
-    const webhookUrl = String(req.body?.webhookUrl || `${appUrl}/api/telegram/webhook`);
-    const result = await callTelegramApi(token, 'setWebhook', { url: webhookUrl });
-    if (!result.ok) {
-      res.status(400).json({ error: result.description || 'Failed to set webhook.' });
-      return;
-    }
-    await syncBotCommands(token);
-    await refreshTelegramBotInfo();
-    res.json({ success: true, webhookUrl, config: getBotConfig() });
   });
 
   router.post('/telegram/delete-webhook', async (_req, res) => {
-    const token = getActiveBotToken();
-    if (token) await callTelegramApi(token, 'deleteWebhook');
-    const cfg = getBotConfig();
-    saveBotConfig({ ...cfg, isWebhookSet: false, webhookUrl: '' });
-    res.json({ success: true });
+    try {
+      const token = getActiveBotToken();
+      if (token) await callTelegramApi(token, 'deleteWebhook');
+      const cfg = getBotConfig();
+      saveBotConfig({ ...cfg, isWebhookSet: false, webhookUrl: '', lastError: undefined });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(502).json({ error: err?.message || 'Failed to delete webhook.' });
+    }
   });
 
   router.get('/telegram/logs', (req: AuthedRequest, res) => {
@@ -3092,25 +3201,29 @@ export function createApiRouter(): Router {
   });
 
   router.post('/telegram/simulate-message', async (req: AuthedRequest, res) => {
-    const user = req.activeUser!;
-    const text = String(req.body?.text || '').trim();
-    if (!text) {
-      res.status(400).json({ error: 'Message text is required.' });
-      return;
+    try {
+      const user = req.activeUser!;
+      const text = String(req.body?.text || '').trim();
+      if (!text) {
+        res.status(400).json({ error: 'Message text is required.' });
+        return;
+      }
+      const chatId = user.telegramChatId || `sim_${user.id}`;
+      const result = await processIncomingTelegramText({
+        text,
+        chatId,
+        senderName: user.name,
+        source: 'simulator',
+      });
+      const store = getUserData(user.id);
+      res.json({
+        ...result,
+        allTransactions: store.transactions,
+        summary: computeFinancialSummary(store),
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Simulator error.' });
     }
-    const chatId = user.telegramChatId || `sim_${user.id}`;
-    const result = await processIncomingTelegramText({
-      text,
-      chatId,
-      senderName: user.name,
-      source: 'simulator',
-    });
-    const store = getUserData(user.id);
-    res.json({
-      ...result,
-      allTransactions: store.transactions,
-      summary: computeFinancialSummary(store),
-    });
   });
 
   router.get('/ai/status', (_req, res) => {
@@ -3151,8 +3264,12 @@ export function createApiRouter(): Router {
   });
 
   router.post('/storage/sync-now', async (_req, res) => {
-    const ok = await syncAllToPg();
-    res.json({ success: ok, ...getStorageStatus() });
+    try {
+      const ok = await syncAllToPg();
+      res.json({ success: ok, ...getStorageStatus() });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Storage sync failed.' });
+    }
   });
 
   return router;

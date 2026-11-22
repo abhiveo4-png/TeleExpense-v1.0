@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Download, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { AccountBalanceInfo, AccountBalancesData, CardEmi, SavingsTransfer, Transaction } from '../types';
+import { isWifeAccount } from '../utils/accounts';
 import { formatDate, formatMoney, getCurrentIstDate } from '../utils/formatters';
 import { exportAccountStatementExcel, exportAllAccountsStatementExcel } from '../utils/statementExport';
 
@@ -299,11 +300,19 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
             const out = card.currentOutstanding || 0;
             const pct = Math.min(100, Math.round((out / limit) * 100));
             const isRemovableCustomCard = card.isDefault === false;
+            const isWifeCard = isWifeAccount(card.accountId) || isWifeAccount(card.shortName);
             return (
               <div key={card.accountId} className="surface-panel rounded-xl p-5 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-white truncate">{card.shortName}</div>
+                    <div className="text-sm font-semibold text-white truncate">
+                      {card.shortName}
+                      {isWifeCard && (
+                        <span className="ml-1.5 text-[11px] font-normal text-pink-300">
+                          · Wife&apos;s Card
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-slate-400 truncate">{card.name}</div>
                     {(card.billingDay || card.paymentDueDay) && (
                       <div className="text-[11px] text-slate-500 mt-0.5 font-mono tabular-nums">
@@ -319,7 +328,12 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
                       onClick={() => {
                         setSettlingCard(card);
                         setSettleAmount(out > 0 ? String(Number(out.toFixed(2))) : '');
-                        setSettleFromAccount(bankAndCash[0]?.accountId || 'AX Bank');
+                        const wifeAcc = bankAndCash.find((a) => a.accountId === 'Wife');
+                        setSettleFromAccount(
+                          isWifeCard && wifeAcc
+                            ? wifeAcc.accountId
+                            : bankAndCash[0]?.accountId || 'AX Bank'
+                        );
                         setSettleDate(getCurrentIstDate());
                         setSettleNote('');
                         setSettleCardError('');
@@ -968,21 +982,37 @@ export const AccountsView: React.FC<AccountsViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Note (optional)</label>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <label className="block text-xs font-medium text-slate-400">Note (optional)</label>
+                    <button
+                      type="button"
+                      onClick={() => setSettleNote('Udhaar / Medical cover from Savings')}
+                      className="text-[11px] font-medium text-sky-400 hover:text-sky-300"
+                    >
+                      + Udhaar cover from Savings
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={settleNote}
                     onChange={(e) => setSettleNote(e.target.value)}
-                    placeholder="e.g. Statement due, partial EMI pay"
+                    placeholder="e.g. Statement due, Udhaar cover from Savings"
                     className="w-full px-3 py-2 text-sm rounded-lg field-input"
                   />
                 </div>
 
-                <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
-                  <span>New Available Card Limit:</span>
-                  <span className="font-mono tabular-nums text-sky-400 font-semibold">
-                    {formatMoney(newAvailLimit, isPrivacyMode)}
-                  </span>
+                <div className="rounded-lg bg-[#0B0F17] border border-white/[0.08] px-3 py-2.5 text-[11px] text-slate-400 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span>New Available Card Limit:</span>
+                    <span className="font-mono tabular-nums text-sky-400 font-semibold">
+                      {formatMoney(newAvailLimit, isPrivacyMode)}
+                    </span>
+                  </div>
+                  <p className="text-slate-500 leading-relaxed">
+                    {settleFromAccount === 'EXTERNAL'
+                      ? 'External settle clears card due without deducting your tracked bank balance.'
+                      : 'Deducts selected bank balance & reduces card due (Net Worth balanced). Counted as internal Bank→Card transfer so original card spends/Udhaar are not 2× deducted from monthly income.'}
+                  </p>
                 </div>
 
                 {settleCardError && <p className="text-xs text-rose-400">{settleCardError}</p>}

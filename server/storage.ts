@@ -38,6 +38,7 @@ if (rawDbUrl.trim()) {
       ssl: isLocal ? false : { rejectUnauthorized: false },
       max: 5,
       idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
     });
     pgPool.on('error', (err) => {
       console.error('[Storage] Idle PostgreSQL client error:', err?.message || err);

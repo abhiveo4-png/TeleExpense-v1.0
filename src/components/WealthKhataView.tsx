@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Download, Plus, Trash2 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, Download, Pencil, Plus, Trash2, TrendingUp, X } from 'lucide-react';
 import {
   InvestmentRecord,
   PiggyBankItem,
@@ -10,6 +10,7 @@ import {
 import { ALL_ACCOUNTS } from '../utils/accounts';
 import { safeFetchJson } from '../utils/api';
 import { formatDate, formatMoney, getCurrentIstDate } from '../utils/formatters';
+import { addMonthsToYmd, calculateInvestmentMetrics } from '../utils/investmentCalculator';
 import { exportUdhaarStatementExcel } from '../utils/statementExport';
 import { SettlementModal, SettlementPayload } from './SettlementModal';
 
@@ -47,8 +48,27 @@ export const WealthKhataView: React.FC<WealthKhataViewProps> = ({
   const [invName, setInvName] = useState('');
   const [invAmount, setInvAmount] = useState('');
   const [invMonthly, setInvMonthly] = useState('');
+  const [invRoi, setInvRoi] = useState('');
+  const [invDate, setInvDate] = useState(() => getCurrentIstDate());
+  const [invMaturityDate, setInvMaturityDate] = useState('');
+  const [invCurrentValue, setInvCurrentValue] = useState('');
   const [invAccount, setInvAccount] = useState('AX Bank');
   const [invAutoDay, setInvAutoDay] = useState('');
+  const [invError, setInvError] = useState<string | null>(null);
+  const [editingInv, setEditingInv] = useState<InvestmentRecord | null>(null);
+  const [editInvDraft, setEditInvDraft] = useState<{
+    type: InvestmentRecord['type'];
+    name: string;
+    amount: string;
+    monthlyAmount: string;
+    interestRate: string;
+    date: string;
+    maturityDate: string;
+    currentValue: string;
+    account: string;
+    autoDebitDay: string;
+  } | null>(null);
+  const [isSavingInvEdit, setIsSavingInvEdit] = useState(false);
 
   // Piggy Bank
   const [piggyFunds, setPiggyFunds] = useState<PiggyBankItem[]>([]);
@@ -84,7 +104,78 @@ export const WealthKhataView: React.FC<WealthKhataViewProps> = ({
   const totalBorrowedPending = udhaars
     .filter((u) => u.type === 'borrowed' && u.status !== 'settled')
     .reduce((s, u) => s + Math.max(0, u.amount - (u.settledAmount || 0)), 0);
-  const totalInvested = investments.reduce((s, i) => s + Number(i.amount || 0), 0);
+
+  const investmentSummaries = useMemo(() => {
+    const items = investments.map((inv) => ({
+      inv,
+      metrics: calculateInvestmentMetrics(inv),
+    }));
+    const totalInvested = items.reduce((s, x) => s + x.metrics.depositedPrincipal, 0);
+    const totalCurrentValue = items.reduce((s, x) => s + x.metrics.currentValue, 0);
+    const totalGain = totalCurrentValue - totalInvested;
+    const overallAbsRoi =
+      totalInvested > 0 ? Number(((totalGain / totalInvested) * 100).toFixed(2)) : 0;
+    const weightedAnnualRoiNumerator = items.reduce(
+      (s, x) => s + x.metrics.depositedPrincipal * (x.metrics.effectiveAnnualRoiPercent || 0),
+      0
+    );
+    const weightedAnnualRoi =
+      totalInvested > 0
+        ? Number((weightedAnnualRoiNumerator / totalInvested).toFixed(2))
+        : 0;
+    const totalProjectedMaturity = items.reduce((s, x) => s + x.metrics.maturityAmount, 0);
+    return {
+      items,
+      totalInvested,
+      totalCurrentValue,
+      totalGain,
+      overallAbsRoi,
+      weightedAnnualRoi,
+      totalProjectedMaturity,
+    };
+  }, [investments]);
+
+  const liveAddPreview = useMemo(() => {
+    const amt = Number(invAmount || 0);
+    const monthly = Number(invMonthly || 0);
+    if (amt <= 0 && monthly <= 0) return null;
+    return calculateInvestmentMetrics({
+      type: invType,
+      amount: amt,
+      monthlyAmount: monthly > 0 ? monthly : undefined,
+      interestRate: invRoi !== '' ? Number(invRoi) : undefined,
+      date: invDate || getCurrentIstDate(),
+      maturityDate: invMaturityDate || undefined,
+      currentValue: invCurrentValue !== '' ? Number(invCurrentValue) : undefined,
+      autoDebitEnabled: Boolean(invAutoDay),
+    });
+  }, [
+    invType,
+    invAmount,
+    invMonthly,
+    invRoi,
+    invDate,
+    invMaturityDate,
+    invCurrentValue,
+    invAutoDay,
+  ]);
+
+  const liveEditPreview = useMemo(() => {
+    if (!editInvDraft) return null;
+    const amt = Number(editInvDraft.amount || 0);
+    const monthly = Number(editInvDraft.monthlyAmount || 0);
+    if (amt <= 0 && monthly <= 0) return null;
+    return calculateInvestmentMetrics({
+      type: editInvDraft.type,
+      amount: amt,
+      monthlyAmount: monthly > 0 ? monthly : undefined,
+      interestRate: editInvDraft.interestRate !== '' ? Number(editInvDraft.interestRate) : undefined,
+      date: editInvDraft.date || getCurrentIstDate(),
+      maturityDate: editInvDraft.maturityDate || undefined,
+      currentValue: editInvDraft.currentValue !== '' ? Number(editInvDraft.currentValue) : undefined,
+      autoDebitEnabled: Boolean(editInvDraft.autoDebitDay),
+    });
+  }, [editInvDraft]);
 
   return (
     <div className="space-y-6">
@@ -298,22 +389,62 @@ export const WealthKhataView: React.FC<WealthKhataViewProps> = ({
 
       {subTab === 'investments' && (
         <div className="space-y-6">
-          <section className="surface-panel rounded-xl p-5 flex items-center justify-between">
-            <div>
-              <div className="text-xs text-slate-400">Total Tracked Portfolio Principal</div>
+          <section className="surface-panel rounded-xl grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.08]">
+            <div className="p-5">
+              <div className="text-xs text-slate-400">Invested Principal ({investments.length})</div>
+              <div className="text-2xl font-bold font-mono tabular-nums text-white mt-1">
+                {formatMoney(investmentSummaries.totalInvested, isPrivacyMode)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                Base deposited capital across holdings
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="text-xs text-slate-400">Current Portfolio Value</div>
               <div className="text-2xl font-bold font-mono tabular-nums text-emerald-400 mt-1">
-                {formatMoney(totalInvested, isPrivacyMode)}
+                {formatMoney(investmentSummaries.totalCurrentValue, isPrivacyMode)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1 font-mono tabular-nums">
+                Est. Maturity: {formatMoney(investmentSummaries.totalProjectedMaturity, isPrivacyMode)}
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="text-xs text-slate-400">Total Gains &amp; Avg ROI</div>
+              <div
+                className={`text-2xl font-bold font-mono tabular-nums mt-1 ${
+                  investmentSummaries.totalGain >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+              >
+                {investmentSummaries.totalGain >= 0 ? '+' : ''}
+                {formatMoney(investmentSummaries.totalGain, isPrivacyMode)}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1 font-mono tabular-nums">
+                {investmentSummaries.overallAbsRoi >= 0 ? '+' : ''}
+                {investmentSummaries.overallAbsRoi}% abs · ~{investmentSummaries.weightedAnnualRoi}% p.a.
               </div>
             </div>
           </section>
 
           <section className="surface-panel rounded-xl p-5 space-y-4">
-            <h2 className="font-display text-base font-semibold text-white">Add Investment / SIP</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-display text-base font-semibold text-white">Add Investment / SIP</h2>
+              <span className="text-[11px] text-slate-400">
+                Enter ROI % p.a. to auto-calculate Current Value &amp; Maturity (or enter Current ₹ for auto ROI)
+              </span>
+            </div>
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (!invName.trim()) return;
-                await safeFetchJson('/api/investments', {
+                setInvError(null);
+                if (!invName.trim()) {
+                  setInvError('Scheme / Instrument Name is required.');
+                  return;
+                }
+                if (invMaturityDate && invDate && invMaturityDate <= invDate) {
+                  setInvError('Maturity Date must be after Start Date.');
+                  return;
+                }
+                const { error } = await safeFetchJson('/api/investments', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -321,151 +452,356 @@ export const WealthKhataView: React.FC<WealthKhataViewProps> = ({
                     name: invName.trim(),
                     amount: Number(invAmount || 0),
                     monthlyAmount: invMonthly ? Number(invMonthly) : undefined,
+                    interestRate: invRoi !== '' ? Number(invRoi) : undefined,
+                    date: invDate || getCurrentIstDate(),
+                    maturityDate: invMaturityDate || undefined,
+                    currentValue: invCurrentValue !== '' ? Number(invCurrentValue) : undefined,
                     account: invAccount,
                     autoDebitEnabled: Boolean(invAutoDay),
                     autoDebitDay: invAutoDay ? Number(invAutoDay) : undefined,
-                    date: getCurrentIstDate(),
                   }),
                 });
+                if (error) {
+                  setInvError(error);
+                  return;
+                }
                 setInvName('');
                 setInvAmount('');
                 setInvMonthly('');
+                setInvRoi('');
+                setInvDate(getCurrentIstDate());
+                setInvMaturityDate('');
+                setInvCurrentValue('');
                 setInvAutoDay('');
                 await onRefreshAll();
               }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2"
+              className="space-y-3"
             >
-              <select
-                value={invType}
-                onChange={(e) => setInvType(e.target.value as any)}
-                className="px-3 py-2 text-xs rounded-lg field-input"
-              >
-                {['Mutual Fund', 'RD', 'FD', 'PPF', 'Gold', 'Insurance', 'Other'].map((t) => (
-                  <option key={t} value={t} className="bg-[#111827]">
-                    {t}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="text"
-                placeholder="Scheme / Instrument Name"
-                value={invName}
-                onChange={(e) => setInvName(e.target.value)}
-                className="px-3 py-2 text-xs rounded-lg field-input"
-              />
-              <input
-                type="number"
-                placeholder="Invested ₹"
-                value={invAmount}
-                onChange={(e) => setInvAmount(e.target.value)}
-                className="px-3 py-2 text-xs font-mono rounded-lg field-input"
-              />
-              <input
-                type="number"
-                placeholder="Monthly SIP ₹"
-                value={invMonthly}
-                onChange={(e) => setInvMonthly(e.target.value)}
-                className="px-3 py-2 text-xs font-mono rounded-lg field-input"
-              />
-              <select
-                aria-label="Investment payment account"
-                value={invAccount}
-                onChange={(e) => setInvAccount(e.target.value)}
-                className="px-3 py-2 text-xs rounded-lg field-input"
-              >
-                {ALL_ACCOUNTS.map((a) => (
-                  <option key={a.id} value={a.id} className="bg-[#111827]">
-                    {a.shortName}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="1"
-                max="28"
-                placeholder="Auto Day (1-28)"
-                value={invAutoDay}
-                onChange={(e) => setInvAutoDay(e.target.value)}
-                className="px-3 py-2 text-xs font-mono rounded-lg field-input"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 text-xs font-semibold text-slate-950 bg-sky-400 hover:bg-sky-300 rounded-lg whitespace-nowrap"
-              >
-                Add Portfolio
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2">
+                <select
+                  aria-label="Investment type"
+                  value={invType}
+                  onChange={(e) => setInvType(e.target.value as any)}
+                  className="px-3 py-2 text-xs rounded-lg field-input"
+                >
+                  {['Mutual Fund', 'RD', 'FD', 'PPF', 'Gold', 'Insurance', 'Other'].map((t) => (
+                    <option key={t} value={t} className="bg-[#111827]">
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Scheme / Instrument Name"
+                  value={invName}
+                  onChange={(e) => setInvName(e.target.value)}
+                  className="px-3 py-2 text-xs rounded-lg field-input lg:col-span-2"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Invested Principal ₹"
+                  value={invAmount}
+                  onChange={(e) => setInvAmount(e.target.value)}
+                  className="px-3 py-2 text-xs font-mono rounded-lg field-input"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Monthly SIP / RD ₹"
+                  value={invMonthly}
+                  onChange={(e) => setInvMonthly(e.target.value)}
+                  className="px-3 py-2 text-xs font-mono rounded-lg field-input"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="ROI % (p.a.) e.g. 12"
+                  value={invRoi}
+                  onChange={(e) => setInvRoi(e.target.value)}
+                  className="px-3 py-2 text-xs font-mono rounded-lg field-input"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 items-end">
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    aria-label="Start Date"
+                    title="Investment Start Date"
+                    value={invDate}
+                    onChange={(e) => setInvDate(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-mono rounded-lg field-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">
+                    Maturity Date (Auto Tenure)
+                  </label>
+                  <input
+                    type="date"
+                    aria-label="Maturity Date"
+                    title="Maturity Date — Tenure is auto-calculated"
+                    min={invDate || undefined}
+                    value={invMaturityDate}
+                    onChange={(e) => setInvMaturityDate(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-mono rounded-lg field-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Current Value ₹</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Auto if empty"
+                    value={invCurrentValue}
+                    onChange={(e) => setInvCurrentValue(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-mono rounded-lg field-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Account</label>
+                  <select
+                    aria-label="Investment payment account"
+                    value={invAccount}
+                    onChange={(e) => setInvAccount(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-lg field-input"
+                  >
+                    {ALL_ACCOUNTS.map((a) => (
+                      <option key={a.id} value={a.id} className="bg-[#111827]">
+                        {a.shortName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Auto SIP Day</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="28"
+                    placeholder="1-28 (optional)"
+                    value={invAutoDay}
+                    onChange={(e) => setInvAutoDay(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-mono rounded-lg field-input"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-semibold text-slate-950 bg-sky-400 hover:bg-sky-300 rounded-lg whitespace-nowrap h-[34px]"
+                >
+                  Add Portfolio
+                </button>
+              </div>
+
+              {invError && <div className="text-xs text-rose-400">{invError}</div>}
+
+              {liveAddPreview && (
+                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-emerald-300 font-medium">
+                    <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+                    <span>Auto ROI &amp; Tenure Preview:</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 font-mono tabular-nums">
+                    {liveAddPreview.tenureLabel && (
+                      <span className="text-slate-300">
+                        Tenure:{' '}
+                        <strong className="text-amber-300">
+                          {liveAddPreview.tenureLabel} ({liveAddPreview.tenureMonths}m)
+                        </strong>
+                      </span>
+                    )}
+                    <span className="text-slate-300">
+                      Current: <strong className="text-emerald-300">{formatMoney(liveAddPreview.currentValue, isPrivacyMode)}</strong>
+                    </span>
+                    <span className="text-slate-300">
+                      Gain:{' '}
+                      <strong className={liveAddPreview.gainAmount >= 0 ? 'text-emerald-300' : 'text-rose-400'}>
+                        {liveAddPreview.gainAmount >= 0 ? '+' : ''}
+                        {formatMoney(liveAddPreview.gainAmount, isPrivacyMode)} ({liveAddPreview.absoluteRoiPercent}%)
+                      </strong>
+                    </span>
+                    <span className="text-slate-300">
+                      ROI: <strong className="text-sky-300">{liveAddPreview.effectiveAnnualRoiPercent}% p.a.</strong>
+                    </span>
+                    {liveAddPreview.hasMaturityProjection && (
+                      <span className="text-slate-300">
+                        Est. Maturity: <strong className="text-white">{formatMoney(liveAddPreview.maturityAmount, isPrivacyMode)}</strong>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </form>
 
             {investments.length === 0 ? (
               <p className="text-xs text-slate-400 py-6 text-center">No investments added yet.</p>
             ) : (
               <div className="divide-y divide-white/[0.06]">
-                {investments.map((inv) => (
-                  <div key={inv.id} className="py-3.5 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-medium text-white">
-                        {inv.name}{' '}
-                        <span className="text-xs font-normal text-slate-400">
-                          · {inv.type} · {inv.account}
+                {investmentSummaries.items.map(({ inv, metrics }) => (
+                  <div key={inv.id} className="py-4 space-y-2">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-1 min-w-0">
+                        <div className="text-sm font-medium text-white">
+                          {inv.name}{' '}
+                          <span className="text-xs font-normal text-slate-400">
+                            · {inv.type} · {inv.account} · {formatDate(inv.date)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono tabular-nums">
+                          <span>Invested: {formatMoney(metrics.depositedPrincipal, isPrivacyMode)}</span>
+                          <span>·</span>
+                          <span className="text-sky-300">
+                            ROI:{' '}
+                            {metrics.effectiveAnnualRoiPercent > 0
+                              ? `${metrics.effectiveAnnualRoiPercent}% p.a.${
+                                  metrics.isRoiAutoInferred ? ' (auto)' : ''
+                                }`
+                              : 'Not set'}
+                          </span>
+                          {metrics.effectiveMaturityDate && (
+                            <>
+                              <span>·</span>
+                              <span className={metrics.isMatured ? 'text-emerald-300 font-medium' : 'text-slate-300'}>
+                                {metrics.isMatured ? 'Matured' : 'Mat'}: {formatDate(metrics.effectiveMaturityDate)}
+                                {metrics.tenureLabel ? ` (${metrics.tenureLabel})` : ''}
+                              </span>
+                            </>
+                          )}
+                          <span>·</span>
+                          <span className="font-sans text-slate-500">
+                            {inv.monthlyAmount
+                              ? `SIP ${formatMoney(inv.monthlyAmount, isPrivacyMode)}/mo`
+                              : 'Lump Sum'}
+                            {inv.autoDebitEnabled && inv.autoDebitDay
+                              ? ` · Auto day ${inv.autoDebitDay}`
+                              : ''}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <div className="text-right font-mono tabular-nums mr-1">
+                          <div className="text-sm font-semibold text-emerald-400">
+                            {formatMoney(metrics.currentValue, isPrivacyMode)}
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            <span className={metrics.gainAmount >= 0 ? 'text-emerald-300' : 'text-rose-400'}>
+                              {metrics.gainAmount >= 0 ? '+' : ''}
+                              {formatMoney(metrics.gainAmount, isPrivacyMode)} ({metrics.absoluteRoiPercent >= 0 ? '+' : ''}
+                              {metrics.absoluteRoiPercent}%)
+                            </span>
+                            {metrics.hasMaturityProjection && metrics.maturityAmount > metrics.currentValue && (
+                              <span className="text-slate-500">
+                                {' '}· Mat {formatMoney(metrics.maturityAmount, isPrivacyMode)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {inv.monthlyAmount && inv.monthlyAmount > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <select
+                              aria-label={`SIP payment account for ${inv.name}`}
+                              value={invPayAccounts[inv.id] ?? inv.account ?? 'AX Bank'}
+                              onChange={(e) =>
+                                setInvPayAccounts((prev) => ({ ...prev, [inv.id]: e.target.value }))
+                              }
+                              className="px-2 py-1 text-[11px] rounded-md field-input"
+                            >
+                              {ALL_ACCOUNTS.map((a) => (
+                                <option key={a.id} value={a.id} className="bg-[#111827]">
+                                  {a.shortName}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const payAcc = invPayAccounts[inv.id] ?? inv.account ?? 'AX Bank';
+                                await safeFetchJson(`/api/investments/${inv.id}/pay-installment`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ amount: inv.monthlyAmount, account: payAcc }),
+                                });
+                                await onRefreshAll();
+                              }}
+                              className="px-2.5 py-1 text-xs font-medium text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 rounded-md whitespace-nowrap"
+                            >
+                              Pay SIP
+                            </button>
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          title="Edit investment & ROI"
+                          onClick={() => {
+                            const startYmd = inv.date || getCurrentIstDate();
+                            const fallbackMaturity =
+                              !inv.maturityDate && inv.totalInstallments && inv.totalInstallments > 1
+                                ? addMonthsToYmd(startYmd, inv.totalInstallments)
+                                : '';
+                            setEditingInv(inv);
+                            setEditInvDraft({
+                              type: inv.type,
+                              name: inv.name,
+                              amount: String(inv.amount ?? 0),
+                              monthlyAmount: inv.monthlyAmount ? String(inv.monthlyAmount) : '',
+                              interestRate:
+                                inv.interestRate !== undefined && inv.interestRate !== null
+                                  ? String(inv.interestRate)
+                                  : '',
+                              date: startYmd,
+                              maturityDate: inv.maturityDate || fallbackMaturity,
+                              currentValue:
+                                inv.currentValue !== undefined && inv.currentValue !== null && inv.currentValue > 0
+                                  ? String(inv.currentValue)
+                                  : '',
+                              account: inv.account || 'AX Bank',
+                              autoDebitDay: inv.autoDebitDay ? String(inv.autoDebitDay) : '',
+                            });
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-sky-300"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Delete investment"
+                          onClick={async () => {
+                            await safeFetchJson(`/api/investments/${inv.id}`, { method: 'DELETE' });
+                            await onRefreshAll();
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-rose-400"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {metrics.hasMaturityProjection && (metrics.progressPercent > 0 || metrics.tenureLabel) && (
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-400/80"
+                            style={{ width: `${metrics.progressPercent}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-mono tabular-nums text-slate-500">
+                          {metrics.isRecurring
+                            ? `${metrics.paidInstallments}/${metrics.totalInstallments} inst${
+                                metrics.tenureLabel ? ` · ${metrics.tenureLabel}` : ''
+                              } (${metrics.progressPercent}%)`
+                            : `${metrics.tenureLabel ? `${metrics.tenureLabel} · ` : ''}${metrics.progressPercent}% elapsed`}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-500">
-                        {inv.monthlyAmount
-                          ? `SIP ${formatMoney(inv.monthlyAmount, isPrivacyMode)}/mo`
-                          : 'Lump Sum'}
-                        {inv.autoDebitEnabled && inv.autoDebitDay
-                          ? ` · Auto-debit on day ${inv.autoDebitDay}`
-                          : ''}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono tabular-nums text-sm font-semibold text-emerald-400 mr-1">
-                        {formatMoney(inv.amount, isPrivacyMode)}
-                      </span>
-                      {inv.monthlyAmount && inv.monthlyAmount > 0 && (
-                        <div className="flex items-center gap-1.5">
-                          <select
-                            aria-label={`SIP payment account for ${inv.name}`}
-                            value={invPayAccounts[inv.id] ?? inv.account ?? 'AX Bank'}
-                            onChange={(e) =>
-                              setInvPayAccounts((prev) => ({ ...prev, [inv.id]: e.target.value }))
-                            }
-                            className="px-2 py-1 text-[11px] rounded-md field-input"
-                          >
-                            {ALL_ACCOUNTS.map((a) => (
-                              <option key={a.id} value={a.id} className="bg-[#111827]">
-                                {a.shortName}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              const payAcc = invPayAccounts[inv.id] ?? inv.account ?? 'AX Bank';
-                              await safeFetchJson(`/api/investments/${inv.id}/pay-installment`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ amount: inv.monthlyAmount, account: payAcc }),
-                              });
-                              await onRefreshAll();
-                            }}
-                            className="px-2.5 py-1 text-xs font-medium text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 rounded-md whitespace-nowrap"
-                          >
-                            Pay SIP
-                          </button>
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          await safeFetchJson(`/api/investments/${inv.id}`, { method: 'DELETE' });
-                          await onRefreshAll();
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-rose-400"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -770,6 +1106,272 @@ export const WealthKhataView: React.FC<WealthKhataViewProps> = ({
           await onSettleReimbursement(settlingRimTx.id, payload);
         }}
       />
+
+      {editingInv && editInvDraft && (
+        <div
+          className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4"
+          onClick={() => {
+            if (!isSavingInvEdit) {
+              setEditingInv(null);
+              setEditInvDraft(null);
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-lg surface-panel rounded-xl border border-white/[0.1] p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-display text-base font-semibold text-white">
+                  Edit Investment &amp; ROI
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Leave Current Value empty to auto-calculate from ROI % &amp; Start Date
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingInv(null);
+                  setEditInvDraft(null);
+                }}
+                className="p-1 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!editingInv || !editInvDraft.name.trim()) return;
+                setIsSavingInvEdit(true);
+                try {
+                  await safeFetchJson(`/api/investments/${editingInv.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      type: editInvDraft.type,
+                      name: editInvDraft.name.trim(),
+                      amount: Number(editInvDraft.amount || 0),
+                      monthlyAmount: editInvDraft.monthlyAmount !== '' ? Number(editInvDraft.monthlyAmount) : null,
+                      interestRate: editInvDraft.interestRate !== '' ? Number(editInvDraft.interestRate) : null,
+                      date: editInvDraft.date || getCurrentIstDate(),
+                      maturityDate: editInvDraft.maturityDate || null,
+                      currentValue: editInvDraft.currentValue !== '' ? Number(editInvDraft.currentValue) : null,
+                      account: editInvDraft.account,
+                      autoDebitEnabled: Boolean(editInvDraft.autoDebitDay),
+                      autoDebitDay: editInvDraft.autoDebitDay !== '' ? Number(editInvDraft.autoDebitDay) : null,
+                    }),
+                  });
+                  setEditingInv(null);
+                  setEditInvDraft(null);
+                  await onRefreshAll();
+                } finally {
+                  setIsSavingInvEdit(false);
+                }
+              }}
+              className="space-y-3"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Type</label>
+                  <select
+                    value={editInvDraft.type}
+                    onChange={(e) =>
+                      setEditInvDraft((prev) => (prev ? { ...prev, type: e.target.value as any } : prev))
+                    }
+                    className="w-full px-3 py-2 text-xs rounded-lg field-input"
+                  >
+                    {['Mutual Fund', 'RD', 'FD', 'PPF', 'Gold', 'Insurance', 'Other'].map((t) => (
+                      <option key={t} value={t} className="bg-[#111827]">
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Scheme Name</label>
+                  <input
+                    type="text"
+                    value={editInvDraft.name}
+                    onChange={(e) =>
+                      setEditInvDraft((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                    }
+                    className="w-full px-3 py-2 text-xs rounded-lg field-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Invested Principal ₹</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={editInvDraft.amount}
+                    onChange={(e) =>
+                      setEditInvDraft((prev) => (prev ? { ...prev, amount: e.target.value } : prev))
+                    }
+                    className="w-full px-3 py-2 text-xs font-mono rounded-lg field-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">ROI % (p.a.)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 12.5"
+                    value={editInvDraft.interestRate}
+                    onChange={(e) =>
+                      setEditInvDraft((prev) => (prev ? { ...prev, interestRate: e.target.value } : prev))
+                    }
+                    className="w-full px-3 py-2 text-xs font-mono rounded-lg field-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={editInvDraft.date}
+                    onChange={(e) =>
+                      setEditInvDraft((prev) => (prev ? { ...prev, date: e.target.value } : prev))
+                    }
+                    className="w-full px-3 py-2 text-xs font-mono rounded-lg field-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    Maturity Date (Auto Tenure)
+                  </label>
+                  <input
+                    type="date"
+                    min={editInvDraft.date || undefined}
+                    value={editInvDraft.maturityDate}
+                    onChange={(e) =>
+                      setEditInvDraft((prev) =>
+                        prev ? { ...prev, maturityDate: e.target.value } : prev
+                      )
+                    }
+                    className="w-full px-3 py-2 text-xs font-mono rounded-lg field-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Monthly SIP / RD ₹</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Optional"
+                    value={editInvDraft.monthlyAmount}
+                    onChange={(e) =>
+                      setEditInvDraft((prev) => (prev ? { ...prev, monthlyAmount: e.target.value } : prev))
+                    }
+                    className="w-full px-3 py-2 text-xs font-mono rounded-lg field-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">
+                    Current Value ₹ (Auto if blank)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Auto from ROI %"
+                    value={editInvDraft.currentValue}
+                    onChange={(e) =>
+                      setEditInvDraft((prev) => (prev ? { ...prev, currentValue: e.target.value } : prev))
+                    }
+                    className="w-full px-3 py-2 text-xs font-mono rounded-lg field-input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Account</label>
+                  <select
+                    value={editInvDraft.account}
+                    onChange={(e) =>
+                      setEditInvDraft((prev) => (prev ? { ...prev, account: e.target.value } : prev))
+                    }
+                    className="w-full px-3 py-2 text-xs rounded-lg field-input"
+                  >
+                    {ALL_ACCOUNTS.map((a) => (
+                      <option key={a.id} value={a.id} className="bg-[#111827]">
+                        {a.shortName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Auto-debit Day (1-28)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="28"
+                    placeholder="Optional"
+                    value={editInvDraft.autoDebitDay}
+                    onChange={(e) =>
+                      setEditInvDraft((prev) => (prev ? { ...prev, autoDebitDay: e.target.value } : prev))
+                    }
+                    className="w-full px-3 py-2 text-xs font-mono rounded-lg field-input"
+                  />
+                </div>
+              </div>
+
+              {liveEditPreview && (
+                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono tabular-nums">
+                  {liveEditPreview.tenureLabel && (
+                    <span className="text-slate-300">
+                      Tenure:{' '}
+                      <strong className="text-amber-300">
+                        {liveEditPreview.tenureLabel} ({liveEditPreview.tenureMonths}m)
+                      </strong>
+                    </span>
+                  )}
+                  <span className="text-slate-300">
+                    Current: <strong className="text-emerald-300">{formatMoney(liveEditPreview.currentValue, isPrivacyMode)}</strong>
+                  </span>
+                  <span className="text-slate-300">
+                    Gain:{' '}
+                    <strong className={liveEditPreview.gainAmount >= 0 ? 'text-emerald-300' : 'text-rose-400'}>
+                      {liveEditPreview.gainAmount >= 0 ? '+' : ''}
+                      {formatMoney(liveEditPreview.gainAmount, isPrivacyMode)} ({liveEditPreview.absoluteRoiPercent}%)
+                    </strong>
+                  </span>
+                  <span className="text-sky-300">
+                    ROI: {liveEditPreview.effectiveAnnualRoiPercent}% p.a.
+                  </span>
+                  {liveEditPreview.hasMaturityProjection && (
+                    <span className="text-slate-300">
+                      Mat: <strong className="text-white">{formatMoney(liveEditPreview.maturityAmount, isPrivacyMode)}</strong>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingInv(null);
+                    setEditInvDraft(null);
+                  }}
+                  className="px-3.5 py-2 text-xs text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingInvEdit}
+                  className="px-4 py-2 text-xs font-semibold text-slate-950 bg-sky-400 hover:bg-sky-300 rounded-lg disabled:opacity-50"
+                >
+                  {isSavingInvEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

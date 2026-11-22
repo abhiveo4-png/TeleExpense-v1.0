@@ -173,6 +173,15 @@ export function syncCustomAccounts(customList?: AccountMeta[]) {
 rebuildAccountExports(loadSavedCustomAccounts());
 
 /**
+ * Returns true if the account/card belongs to Wife (e.g., Wife bank or Axis 2904 card).
+ */
+export function isWifeAccount(accountId?: string): boolean {
+  const lower = (accountId || '').trim().toLowerCase();
+  if (!lower) return false;
+  return lower === 'wife' || /\bwife\b/i.test(lower) || /\b2904\b/.test(lower);
+}
+
+/**
  * Smart detection of account/card from text
  */
 export function detectAccount(text: string): AccountId | undefined {

@@ -1,9 +1,11 @@
+import https from 'node:https';
 import { getIstDateTime } from './defaults.js';
 import {
   askFinancialAdvisor,
   isGeminiConfigured,
   parseMessageWithGemini,
 } from './geminiService.js';
+import { calculateInvestmentMetrics } from './investmentCalculator.js';
 import {
   computeAccountBalances,
   computeFinancialSummary,
@@ -33,12 +35,58 @@ export async function callTelegramApi(
   body?: Record<string, unknown>
 ): Promise<{ ok: boolean; result?: any; description?: string }> {
   if (!token) return { ok: false, description: 'Bot token missing' };
-  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
+  const payload = body ? JSON.stringify(body) : undefined;
+
+  return new Promise((resolve) => {
+    try {
+      const req = https.request(
+        `https://api.telegram.org/bot${token}/${method}`,
+        {
+          method: 'POST',
+          family: 4,
+          timeout: 12000,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(payload ? { 'Content-Length': Buffer.byteLength(payload) } : {}),
+          },
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+          res.on('end', () => {
+            const raw = Buffer.concat(chunks).toString('utf-8');
+            try {
+              resolve(JSON.parse(raw));
+            } catch {
+              resolve({
+                ok: false,
+                description: `Telegram API HTTP ${res.statusCode || 502}: ${raw.slice(0, 140) || 'Invalid response'}`,
+              });
+            }
+          });
+        }
+      );
+
+      req.on('timeout', () => {
+        req.destroy(new Error('Telegram API request timed out (12s)'));
+      });
+
+      req.on('error', (err: any) => {
+        resolve({
+          ok: false,
+          description: err?.message || 'Unable to reach api.telegram.org',
+        });
+      });
+
+      if (payload) req.write(payload);
+      req.end();
+    } catch (err: any) {
+      resolve({
+        ok: false,
+        description: err?.message || 'Unable to reach api.telegram.org',
+      });
+    }
   });
-  return res.json();
 }
 
 export async function sendTelegramMessage(chatId: string | number, text: string): Promise<boolean> {
@@ -124,7 +172,7 @@ function computeCurrentWorthSnapshot(store: UserDataStore) {
     : Number(bal.wifeSavings?.currentBalance || 0);
 
   const investmentsTotal = (store.investments || []).reduce(
-    (s, inv) => s + Number(inv.currentValue && inv.currentValue > 0 ? inv.currentValue : inv.amount || 0),
+    (s, inv) => s + calculateInvestmentMetrics(inv).currentValue,
     0
   );
 

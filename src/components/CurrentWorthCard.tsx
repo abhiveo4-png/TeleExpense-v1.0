@@ -8,6 +8,7 @@ import {
   UdhaarRecord,
 } from '../types';
 import { formatDate, formatMoney } from '../utils/formatters';
+import { calculateInvestmentMetrics } from '../utils/investmentCalculator';
 
 interface CurrentWorthCardProps {
   balances: AccountBalancesData | null;
@@ -48,10 +49,9 @@ export const CurrentWorthCard: React.FC<CurrentWorthCardProps> = ({
       : Number(balances?.wifeSavings?.totalTransferred || 0);
     const wifeDebits = wifeAccount ? Number(wifeAccount.debits || 0) : 0;
 
-    // Investments: strictly from Wealth & Khata portfolio holdings
+    // Investments: strictly from Wealth & Khata portfolio holdings (with ROI auto-calculation)
     const investmentsTotal = investments.reduce(
-      (s, inv) =>
-        s + Number(inv.currentValue && inv.currentValue > 0 ? inv.currentValue : inv.amount || 0),
+      (s, inv) => s + calculateInvestmentMetrics(inv).currentValue,
       0
     );
 
@@ -313,18 +313,34 @@ export const CurrentWorthCard: React.FC<CurrentWorthCardProps> = ({
                 {investments.length > 0 ? (
                   <div className="divide-y divide-white/[0.06] border-t border-white/[0.06] max-h-44 overflow-y-auto">
                     {investments.map((inv) => {
-                      const val = Number(inv.currentValue && inv.currentValue > 0 ? inv.currentValue : inv.amount || 0);
+                      const metrics = calculateInvestmentMetrics(inv);
                       return (
                         <div key={inv.id} className="py-2 flex items-center justify-between gap-3 text-xs">
                           <div className="min-w-0">
                             <span className="text-slate-200 font-medium">{inv.name}</span>
                             <span className="text-slate-500 ml-2">
                               {inv.type} · {inv.account}
+                              {metrics.tenureLabel ? ` · ${metrics.tenureLabel}` : ''}
+                              {metrics.effectiveAnnualRoiPercent > 0
+                                ? ` · ${metrics.effectiveAnnualRoiPercent}% ROI`
+                                : ''}
                             </span>
                           </div>
-                          <span className="font-mono tabular-nums font-semibold text-emerald-300 shrink-0">
-                            {formatMoney(val, isPrivacyMode)}
-                          </span>
+                          <div className="text-right font-mono tabular-nums shrink-0">
+                            <span className="font-semibold text-emerald-300">
+                              {formatMoney(metrics.currentValue, isPrivacyMode)}
+                            </span>
+                            {metrics.gainAmount !== 0 && (
+                              <span
+                                className={`ml-1.5 text-[11px] ${
+                                  metrics.gainAmount >= 0 ? 'text-emerald-400/80' : 'text-rose-400'
+                                }`}
+                              >
+                                ({metrics.gainAmount >= 0 ? '+' : ''}
+                                {metrics.absoluteRoiPercent}%)
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
                     })}

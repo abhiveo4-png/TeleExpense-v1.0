@@ -11,6 +11,7 @@ interface TopBarProps {
 
 const TAB_TITLES: Record<WorkspaceTab, string> = {
   ledger: 'Overview & Ledger',
+  cashflow: 'Bank Bachat (Cashflow)',
   accounts: 'Accounts & Cards',
   budgets: 'Budgets & Gullak',
   wealth: 'Wealth & Khata',
@@ -20,6 +21,7 @@ const TAB_TITLES: Record<WorkspaceTab, string> = {
 
 const QUICK_LINKS: Array<{ id: WorkspaceTab; label: string }> = [
   { id: 'ledger', label: 'Ledger' },
+  { id: 'cashflow', label: 'Bank Bachat' },
   { id: 'accounts', label: 'Accounts' },
   { id: 'budgets', label: 'Budgets' },
   { id: 'wealth', label: 'Wealth' },

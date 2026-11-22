@@ -4,163 +4,404 @@ export interface InvestmentMetrics {
   monthlyAmount: number;
   paidInstallments: number;
   totalInstallments: number;
+  tenureMonths: number;
+  tenureDays: number;
+  tenureLabel: string;
+  hasMaturityDate: boolean;
+  isMatured: boolean;
+  effectiveMaturityDate?: string;
   depositedPrincipal: number;
   accruedInterest: number;
   currentValue: number;
+  gainAmount: number;
+  absoluteRoiPercent: number;
+  effectiveAnnualRoiPercent: number;
+  isRoiAutoInferred: boolean;
+  isCurrentValueAutoCalculated: boolean;
   maturityPrincipal: number;
   maturityInterest: number;
   maturityAmount: number;
+  hasMaturityProjection: boolean;
   isRecurring: boolean;
   progressPercent: number;
 }
 
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+function parseSafeDate(dateStr?: string): Date {
+  if (!dateStr) return new Date();
+  const normalized = dateStr.length === 10 ? `${dateStr}T00:00:00` : dateStr;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function formatYmd(dt: Date): string {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const d = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function addMonthsToYmd(dateStr: string, months: number): string {
+  if (!dateStr || !Number.isFinite(months) || months <= 0) return '';
+  const dt = parseSafeDate(dateStr);
+  const origDay = dt.getDate();
+  dt.setMonth(dt.getMonth() + Math.round(months));
+  if (dt.getDate() < origDay) {
+    dt.setDate(0);
+  }
+  return formatYmd(dt);
+}
+
+export function computeTenureBetweenDates(
+  startDateStr?: string,
+  maturityDateStr?: string
+): { tenureMonths: number; tenureDays: number } | null {
+  if (!startDateStr || !maturityDateStr) return null;
+  const start = parseSafeDate(startDateStr);
+  const end = parseSafeDate(maturityDateStr);
+  if (end.getTime() <= start.getTime()) return null;
+
+  const tenureDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / MS_PER_DAY));
+  const diffY = end.getFullYear() - start.getFullYear();
+  const diffM = end.getMonth() - start.getMonth();
+  const diffD = end.getDate() - start.getDate();
+  const rawMonths = diffY * 12 + diffM + (diffD >= 15 ? 1 : diffD <= -15 ? -1 : 0);
+  const tenureMonths = tenureDays < 25 ? 0 : Math.max(1, rawMonths);
+  return { tenureMonths, tenureDays };
+}
+
+export function formatTenureLabel(tenureMonths: number, tenureDays: number): string {
+  if (tenureMonths <= 0) {
+    return tenureDays > 0 ? `${tenureDays}d` : '';
+  }
+  if (tenureMonths >= 12) {
+    const yrs = Math.floor(tenureMonths / 12);
+    const remM = tenureMonths % 12;
+    return remM > 0 ? `${yrs}y ${remM}m` : `${yrs}y`;
+  }
+  return `${tenureMonths}m`;
+}
+
+function usesAnnualCagr(type: InvestmentRecord['type'] | string): boolean {
+  return type === 'Mutual Fund' || type === 'Gold' || type === 'Other';
+}
+
+function computeCompoundInterest(
+  principal: number,
+  annualRatePercent: number,
+  years: number,
+  type: InvestmentRecord['type'] | string
+): number {
+  if (principal <= 0 || annualRatePercent <= 0 || years <= 0) return 0;
+  if (usesAnnualCagr(type)) {
+    return principal * (Math.pow(1 + annualRatePercent / 100, years) - 1);
+  }
+  // Indian Banking standard: quarterly compounding for FD, RD, PPF, Insurance
+  const quarterlyRate = annualRatePercent / 100 / 4;
+  return principal * (Math.pow(1 + quarterlyRate, 4 * years) - 1);
+}
+
 /**
- * Calculates current accumulated value, accrued interest, and maturity projections
- * for Recurring Deposits (RD), Fixed Deposits (FD), SIPs, and other investment plans.
+ * Calculates current accumulated value, auto-derived tenure from Maturity Date,
+ * accrued interest/gains, ROI %, and maturity projections for RD, FD, SIPs, MF, PPF, Gold, etc.
  */
 export function calculateInvestmentMetrics(
   inv: Partial<InvestmentRecord>,
   asOfDateStr?: string
 ): InvestmentMetrics {
-  const type = inv.type || 'RD';
-  const isRecurring =
-    type === 'RD' ||
-    type === 'Mutual Fund' ||
-    type === 'Insurance' ||
-    (inv.monthlyAmount !== undefined && inv.monthlyAmount > 0) ||
-    Boolean(inv.autoDebitEnabled);
+  const type = inv.type || 'Mutual Fund';
+  const monthlyInput = Number(inv.monthlyAmount || 0);
+  const lumpInput = Number(inv.amount || 0);
+  const freqMultiplier =
+    inv.installmentFrequency === 'yearly'
+      ? 12
+      : inv.installmentFrequency === 'quarterly'
+      ? 3
+      : 1;
+
   const rate = Number(inv.interestRate) || 0;
-  const rawAmt = Number(inv.monthlyAmount) || Number(inv.amount) || 0;
-  const startDateStr = inv.date || new Date().toISOString().split('T')[0];
-  const startDate = new Date(startDateStr);
-  const asOfDate = asOfDateStr ? new Date(asOfDateStr) : new Date();
+  const startDate = parseSafeDate(inv.date);
+  const asOfDate = parseSafeDate(asOfDateStr);
+  const rawDiffMs = Math.max(0, asOfDate.getTime() - startDate.getTime());
+
+  // Auto-calculate tenure from Maturity Date (takes priority over legacy totalInstallments)
+  const dateDerivedTenure = computeTenureBetweenDates(inv.date, inv.maturityDate);
+  const hasMaturityDate = Boolean(dateDerivedTenure);
+  const legacyTenureMonths =
+    !dateDerivedTenure && Number(inv.totalInstallments || 0) > 0
+      ? Math.round(Number(inv.totalInstallments) * freqMultiplier)
+      : 0;
+  const tenureMonths = dateDerivedTenure ? dateDerivedTenure.tenureMonths : legacyTenureMonths;
+  const tenureDays = dateDerivedTenure
+    ? dateDerivedTenure.tenureDays
+    : legacyTenureMonths > 0
+    ? Math.round(legacyTenureMonths * 30.4375)
+    : 0;
+  const tenureLabel = formatTenureLabel(tenureMonths, tenureDays);
+  const effectiveMaturityDate = inv.maturityDate
+    ? inv.maturityDate
+    : inv.date && legacyTenureMonths > 0
+    ? addMonthsToYmd(inv.date, legacyTenureMonths)
+    : undefined;
+
+  const matDateObj = effectiveMaturityDate ? parseSafeDate(effectiveMaturityDate) : null;
+  const isMatured = Boolean(
+    matDateObj && hasMaturityDate && asOfDate.getTime() >= matDateObj.getTime()
+  );
+
+  // Cap elapsed duration at maturity date if a valid maturity date is specified
+  const effectiveElapsedMs =
+    dateDerivedTenure && inv.maturityDate
+      ? Math.min(rawDiffMs, dateDerivedTenure.tenureDays * MS_PER_DAY)
+      : rawDiffMs;
+  const yearsFromStart = effectiveElapsedMs / (MS_PER_DAY * 365.25);
+
+  const isRecurring =
+    monthlyInput > 0 ||
+    Boolean(inv.autoDebitEnabled) ||
+    (type === 'RD' && (Number(inv.totalInstallments || 0) > 1 || tenureMonths > 1));
+
+  const hasManualCurrentValue =
+    inv.currentValue !== undefined &&
+    inv.currentValue !== null &&
+    Number.isFinite(Number(inv.currentValue)) &&
+    Number(inv.currentValue) > 0;
 
   if (isRecurring) {
-    const monthlyAmt = rawAmt;
+    const monthlyAmt = monthlyInput > 0 ? monthlyInput : lumpInput;
 
-    // 1. Calculate Total Tenure (Installments / Months)
-    let totalMonths = Number(inv.totalInstallments) || 0;
-    if (!totalMonths && inv.maturityDate && inv.date) {
-      const matDate = new Date(inv.maturityDate);
-      const diffY = matDate.getFullYear() - startDate.getFullYear();
-      const diffM = matDate.getMonth() - startDate.getMonth();
-      const diffDays = matDate.getDate() - startDate.getDate();
-      totalMonths = Math.max(1, diffY * 12 + diffM + (diffDays >= 15 ? 1 : 0));
-    }
-    if (!totalMonths) totalMonths = 12; // Standard 1 year default
+    // 1. Total Tenure (installments) — prioritize Maturity Date auto-calculation
+    let totalInstallments = dateDerivedTenure
+      ? Math.max(1, Math.round(Math.max(1, dateDerivedTenure.tenureMonths) / freqMultiplier))
+      : Number(inv.totalInstallments) || 0;
+    const hasExplicitTenure = hasMaturityDate || Number(inv.totalInstallments || 0) > 0;
+    if (!totalInstallments) totalInstallments = 12;
 
-    // 2. Calculate Paid Installments till date
-    let paidCount = Number(inv.paidInstallments);
-    if (inv.paidInstallments === undefined || isNaN(paidCount) || paidCount < 0) {
-      // Auto-compute months elapsed from startDate to asOfDate
-      const startY = startDate.getFullYear();
-      const startM = startDate.getMonth();
-      const startD = startDate.getDate();
+    // 2. Paid Installments & Deposited Principal
+    const cappedAsOf =
+      dateDerivedTenure && matDateObj && asOfDate.getTime() > matDateObj.getTime()
+        ? matDateObj
+        : asOfDate;
+    const startY = startDate.getFullYear();
+    const startM = startDate.getMonth();
+    const startD = startDate.getDate();
+    const curY = cappedAsOf.getFullYear();
+    const curM = cappedAsOf.getMonth();
+    const curD = cappedAsOf.getDate();
 
-      const curY = asOfDate.getFullYear();
-      const curM = asOfDate.getMonth();
-      const curD = asOfDate.getDate();
+    let monthsElapsed = (curY - startY) * 12 + (curM - startM);
+    if (curD >= startD) monthsElapsed += 1;
+    monthsElapsed = Math.max(0, monthsElapsed);
 
-      let monthsElapsed = (curY - startY) * 12 + (curM - startM);
-      if (curD >= startD) {
-        monthsElapsed += 1;
+    let paidCount = Number(inv.paidInstallments || 0);
+    if (paidCount <= 0) {
+      if (lumpInput > 0 && monthlyAmt > 0) {
+        paidCount = Math.max(1, Math.round(lumpInput / monthlyAmt));
+      } else {
+        paidCount = Math.max(
+          1,
+          Math.min(totalInstallments, Math.ceil(Math.max(1, monthsElapsed) / freqMultiplier))
+        );
       }
-      paidCount = Math.max(1, Math.min(totalMonths, monthsElapsed));
     }
 
-    const depositedPrincipal = paidCount * monthlyAmt;
+    const depositedPrincipal = lumpInput > 0 ? lumpInput : paidCount * monthlyAmt;
 
-    // 3. Accrued Interest (Quarterly Compounded Indian Banking Standard for RD)
+    // 3. Accrued Interest from ROI
     let accruedInterest = 0;
-    if (rate > 0) {
-      const freqMultiplier = inv.installmentFrequency === 'yearly' ? 12 : inv.installmentFrequency === 'quarterly' ? 3 : 1;
-      const quarterlyRate = (rate / 100) / 4;
-      for (let i = 1; i <= paidCount; i++) {
-        const monthsHeld = (paidCount - i + 1) * freqMultiplier;
-        const compFactor = Math.pow(1 + quarterlyRate, monthsHeld / 3) - 1;
-        accruedInterest += monthlyAmt * compFactor;
+    if (rate > 0 && depositedPrincipal > 0) {
+      const effectiveSteps = Math.max(1, paidCount);
+      const stepAmount = depositedPrincipal / effectiveSteps;
+      for (let i = 1; i <= effectiveSteps; i++) {
+        const installmentAgeMonths =
+          effectiveSteps === 1 && monthsElapsed > freqMultiplier
+            ? monthsElapsed
+            : (effectiveSteps - i + 1) * freqMultiplier;
+        accruedInterest += computeCompoundInterest(
+          stepAmount,
+          rate,
+          installmentAgeMonths / 12,
+          type
+        );
       }
     }
     accruedInterest = Math.round(accruedInterest);
-    const currentValue = (inv.currentValue !== undefined && Number(inv.currentValue) > 0)
-      ? Number(inv.currentValue)
-      : (depositedPrincipal + accruedInterest);
 
-    // 4. Maturity Projection at end of tenure
-    const maturityPrincipal = totalMonths * monthlyAmt;
+    const autoCurrentValue = Math.round(depositedPrincipal + accruedInterest);
+    const currentValue = hasManualCurrentValue
+      ? Number(inv.currentValue)
+      : autoCurrentValue;
+    const gainAmount = Math.round(currentValue - depositedPrincipal);
+    const absoluteRoiPercent =
+      depositedPrincipal > 0
+        ? Number(((gainAmount / depositedPrincipal) * 100).toFixed(2))
+        : 0;
+
+    // Infer annualized ROI if user supplied Current Value without Rate
+    let effectiveAnnualRoiPercent = rate;
+    let isRoiAutoInferred = false;
+    if (rate <= 0 && hasManualCurrentValue && depositedPrincipal > 0) {
+      const avgYearsHeld = Math.max(
+        1 / 12,
+        yearsFromStart > 0 ? yearsFromStart / 1.8 : (paidCount * freqMultiplier) / 24
+      );
+      effectiveAnnualRoiPercent = Number(
+        ((Math.pow(currentValue / depositedPrincipal, 1 / avgYearsHeld) - 1) * 100).toFixed(2)
+      );
+      isRoiAutoInferred = true;
+    }
+
+    // 4. Maturity Projection
+    const effectiveTotal = Math.max(totalInstallments, paidCount);
+    const remainingSteps = Math.max(0, effectiveTotal - paidCount);
+    const maturityPrincipal = depositedPrincipal + remainingSteps * monthlyAmt;
     let maturityInterest = 0;
-    if (rate > 0) {
-      const freqMultiplier = inv.installmentFrequency === 'yearly' ? 12 : inv.installmentFrequency === 'quarterly' ? 3 : 1;
-      const quarterlyRate = (rate / 100) / 4;
-      for (let i = 1; i <= totalMonths; i++) {
-        const monthsHeld = (totalMonths - i + 1) * freqMultiplier;
-        const compFactor = Math.pow(1 + quarterlyRate, monthsHeld / 3) - 1;
-        maturityInterest += monthlyAmt * compFactor;
+    const projectionRate = rate > 0 ? rate : Math.max(0, effectiveAnnualRoiPercent);
+    if (projectionRate > 0 && monthlyAmt > 0) {
+      for (let i = 1; i <= effectiveTotal; i++) {
+        const monthsHeld = (effectiveTotal - i + 1) * freqMultiplier;
+        maturityInterest += computeCompoundInterest(
+          monthlyAmt,
+          projectionRate,
+          monthsHeld / 12,
+          type
+        );
+      }
+      const baseExpectedPrincipal = effectiveTotal * monthlyAmt;
+      if (baseExpectedPrincipal > 0 && maturityPrincipal !== baseExpectedPrincipal) {
+        maturityInterest *= maturityPrincipal / baseExpectedPrincipal;
       }
     }
     maturityInterest = Math.round(maturityInterest);
-    const maturityAmount = Number(inv.maturityAmount) || (maturityPrincipal + maturityInterest);
-    const progressPercent = Math.min(100, Math.round((paidCount / totalMonths) * 100));
+    const maturityAmount =
+      Number(inv.maturityAmount) > 0
+        ? Number(inv.maturityAmount)
+        : Math.round(maturityPrincipal + maturityInterest);
+    const progressPercent = Math.min(
+      100,
+      Math.round((paidCount / Math.max(1, effectiveTotal)) * 100)
+    );
 
     return {
       monthlyAmount: monthlyAmt,
       paidInstallments: paidCount,
-      totalInstallments: totalMonths,
+      totalInstallments: effectiveTotal,
+      tenureMonths: tenureMonths || effectiveTotal * freqMultiplier,
+      tenureDays: tenureDays || Math.round(effectiveTotal * freqMultiplier * 30.4375),
+      tenureLabel:
+        tenureLabel || formatTenureLabel(effectiveTotal * freqMultiplier, 0),
+      hasMaturityDate,
+      isMatured,
+      effectiveMaturityDate,
       depositedPrincipal,
-      accruedInterest,
+      accruedInterest: gainAmount,
       currentValue,
+      gainAmount,
+      absoluteRoiPercent,
+      effectiveAnnualRoiPercent,
+      isRoiAutoInferred,
+      isCurrentValueAutoCalculated: !hasManualCurrentValue && rate > 0,
       maturityPrincipal,
       maturityInterest,
       maturityAmount,
+      hasMaturityProjection: hasExplicitTenure || rate > 0 || Number(inv.maturityAmount || 0) > 0,
       isRecurring: true,
       progressPercent,
     };
-  } else {
-    // Lump Sum (FD, Gold, PPF, Other)
-    const principal = rawAmt;
-    let accruedInterest = 0;
-    let currentValue = principal;
-
-    if (rate > 0 && inv.date) {
-      const diffTime = Math.max(0, asOfDate.getTime() - startDate.getTime());
-      const years = diffTime / (1000 * 60 * 60 * 24 * 365.25);
-      const quarterlyRate = (rate / 100) / 4;
-      accruedInterest = Math.round(principal * (Math.pow(1 + quarterlyRate, 4 * years) - 1));
-      currentValue = principal + accruedInterest;
-    }
-
-    let maturityAmount = currentValue;
-    let maturityInterest = accruedInterest;
-    let totalDays = 365;
-    let daysPassed = 0;
-
-    if (inv.date && inv.maturityDate) {
-      const matDate = new Date(inv.maturityDate);
-      totalDays = Math.max(1, Math.round((matDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-      daysPassed = Math.max(0, Math.min(totalDays, Math.round((asOfDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))));
-      
-      if (rate > 0) {
-        const years = totalDays / 365.25;
-        const quarterlyRate = (rate / 100) / 4;
-        maturityInterest = Math.round(principal * (Math.pow(1 + quarterlyRate, 4 * years) - 1));
-        maturityAmount = principal + maturityInterest;
-      }
-    }
-
-    const progressPercent = Math.min(100, Math.round((daysPassed / totalDays) * 100));
-
-    return {
-      monthlyAmount: 0,
-      paidInstallments: 1,
-      totalInstallments: 1,
-      depositedPrincipal: principal,
-      accruedInterest,
-      currentValue,
-      maturityPrincipal: principal,
-      maturityInterest,
-      maturityAmount,
-      isRecurring: false,
-      progressPercent,
-    };
   }
+
+  // Lump Sum (FD, Gold, PPF, Lump-Sum Mutual Fund, Insurance, Other)
+  const principal = lumpInput;
+  const accruedInterest =
+    rate > 0 && principal > 0 && inv.date
+      ? Math.round(computeCompoundInterest(principal, rate, yearsFromStart, type))
+      : 0;
+
+  const autoCurrentValue = principal + accruedInterest;
+  const currentValue = hasManualCurrentValue
+    ? Number(inv.currentValue)
+    : autoCurrentValue;
+  const gainAmount = Math.round(currentValue - principal);
+  const absoluteRoiPercent =
+    principal > 0 ? Number(((gainAmount / principal) * 100).toFixed(2)) : 0;
+
+  let effectiveAnnualRoiPercent = rate;
+  let isRoiAutoInferred = false;
+  if (rate <= 0 && hasManualCurrentValue && principal > 0) {
+    const effectiveYears = Math.max(1 / 12, yearsFromStart);
+    effectiveAnnualRoiPercent = Number(
+      ((Math.pow(currentValue / principal, 1 / effectiveYears) - 1) * 100).toFixed(2)
+    );
+    isRoiAutoInferred = true;
+  }
+
+  const totalDays = tenureDays > 0 ? tenureDays : 365;
+  let daysPassed = 0;
+  let hasMaturityProjection =
+    hasMaturityDate || Number(inv.totalInstallments || 0) > 0 || Number(inv.maturityAmount || 0) > 0;
+  let maturityInterest = accruedInterest;
+  let maturityAmount = currentValue;
+
+  if (dateDerivedTenure) {
+    daysPassed = Math.max(
+      0,
+      Math.min(totalDays, Math.round((asOfDate.getTime() - startDate.getTime()) / MS_PER_DAY))
+    );
+    const projRate = rate > 0 ? rate : Math.max(0, effectiveAnnualRoiPercent);
+    if (projRate > 0 && principal > 0) {
+      maturityInterest = Math.round(
+        computeCompoundInterest(principal, projRate, totalDays / 365.25, type)
+      );
+      maturityAmount = principal + maturityInterest;
+    }
+  } else if (legacyTenureMonths > 0) {
+    daysPassed = Math.max(0, Math.min(totalDays, Math.round(yearsFromStart * 365.25)));
+    const projRate = rate > 0 ? rate : Math.max(0, effectiveAnnualRoiPercent);
+    if (projRate > 0 && principal > 0) {
+      maturityInterest = Math.round(
+        computeCompoundInterest(principal, projRate, legacyTenureMonths / 12, type)
+      );
+      maturityAmount = principal + maturityInterest;
+    }
+  } else if (rate > 0 && principal > 0) {
+    hasMaturityProjection = true;
+    maturityInterest = Math.round(computeCompoundInterest(principal, rate, 1, type));
+    maturityAmount = principal + maturityInterest;
+  }
+
+  if (Number(inv.maturityAmount) > 0) {
+    maturityAmount = Number(inv.maturityAmount);
+    maturityInterest = Math.round(maturityAmount - principal);
+  }
+
+  const progressPercent = hasMaturityProjection
+    ? Math.min(100, Math.round((daysPassed / Math.max(1, totalDays)) * 100))
+    : 0;
+
+  return {
+    monthlyAmount: 0,
+    paidInstallments: 1,
+    totalInstallments: tenureMonths > 0 ? tenureMonths : 1,
+    tenureMonths,
+    tenureDays,
+    tenureLabel,
+    hasMaturityDate,
+    isMatured,
+    effectiveMaturityDate,
+    depositedPrincipal: principal,
+    accruedInterest: gainAmount,
+    currentValue,
+    gainAmount,
+    absoluteRoiPercent,
+    effectiveAnnualRoiPercent,
+    isRoiAutoInferred,
+    isCurrentValueAutoCalculated: !hasManualCurrentValue && rate > 0,
+    maturityPrincipal: principal,
+    maturityInterest,
+    maturityAmount,
+    hasMaturityProjection,
+    isRecurring: false,
+    progressPercent,
+  };
 }

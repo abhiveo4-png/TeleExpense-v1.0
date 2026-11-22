@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  ArrowLeftRight,
   LayoutList,
   Landmark,
   Target,
@@ -13,6 +14,7 @@ import { UserProfile, UserRole } from '../types';
 
 export type WorkspaceTab =
   | 'ledger'
+  | 'cashflow'
   | 'accounts'
   | 'budgets'
   | 'wealth'
@@ -32,6 +34,7 @@ interface SidebarProps {
 
 const NAV_ITEMS: Array<{ id: WorkspaceTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { id: 'ledger', label: 'Overview & Ledger', icon: LayoutList },
+  { id: 'cashflow', label: 'Bank Bachat (Cashflow)', icon: ArrowLeftRight },
   { id: 'accounts', label: 'Accounts & Cards', icon: Landmark },
   { id: 'budgets', label: 'Budgets & Gullak', icon: Target },
   { id: 'wealth', label: 'Wealth & Khata', icon: PiggyBank },

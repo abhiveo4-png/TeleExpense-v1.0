@@ -774,6 +774,9 @@ export function processInvestmentAutoDebits(userId: string, store: UserDataStore
 
     store.transactions.unshift(tx);
     inv.amount = Number(inv.amount || 0) + Number(inv.monthlyAmount);
+    if (inv.currentValue && inv.currentValue > 0) {
+      inv.currentValue = Number(inv.currentValue) + Number(inv.monthlyAmount);
+    }
     inv.paidInstallments = Number(inv.paidInstallments || 0) + 1;
     inv.lastAutoDebitMonth = currentMonth;
     inv.autoDebitHistory = inv.autoDebitHistory || [];
