@@ -36,8 +36,11 @@ if (rawDbUrl.trim()) {
     pgPool = new Pool({
       connectionString: rawDbUrl,
       ssl: isLocal ? false : { rejectUnauthorized: false },
-      max: 10,
+      max: 5,
       idleTimeoutMillis: 30000,
+    });
+    pgPool.on('error', (err) => {
+      console.error('[Storage] Idle PostgreSQL client error:', err?.message || err);
     });
   } catch (err) {
     console.error('[Storage] Failed to initialize PostgreSQL pool:', err);

@@ -3,7 +3,6 @@ import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import { createServer as createViteServer } from 'vite';
 import { createApiRouter } from './server/routes.js';
 import {
   getActiveBotToken,
@@ -35,7 +34,7 @@ async function startServer() {
   await initDatabase();
 
   // Hourly auto-debit runner for SIPs & RDs
-  setInterval(() => {
+  const autoDebitTimer = setInterval(() => {
     for (const user of getUsers()) {
       try {
         const store = getUserData(user.id);
@@ -46,8 +45,10 @@ async function startServer() {
       }
     }
   }, 60 * 60 * 1000);
+  autoDebitTimer.unref?.();
 
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: {
         middlewareMode: true,

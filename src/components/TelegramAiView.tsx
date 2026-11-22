@@ -271,20 +271,50 @@ export const TelegramAiView: React.FC<TelegramAiViewProps> = ({
   const handleRestoreExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf);
-    const txSheet = wb.Sheets['Transactions'] || wb.Sheets[wb.SheetNames[0]];
-    const budgetsSheet = wb.Sheets['Budgets'];
-    const transactions = txSheet ? XLSX.utils.sheet_to_json(txSheet) : [];
-    const budgets = budgetsSheet ? XLSX.utils.sheet_to_json(budgetsSheet) : [];
-    const { data, error } = await safeFetchJson<{ message?: string }>('/api/transactions/restore-backup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transactions, budgets }),
-    });
-    setRestoreMsg(error || data?.message || 'Backup restored.');
-    await onRefreshAll();
-    e.target.value = '';
+    setRestoreMsg('');
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf);
+      const readSheet = (name: string, fallbackIndex?: number) => {
+        const ws =
+          wb.Sheets[name] ||
+          (fallbackIndex !== undefined && wb.SheetNames[fallbackIndex]
+            ? wb.Sheets[wb.SheetNames[fallbackIndex]]
+            : undefined);
+        return ws ? XLSX.utils.sheet_to_json(ws) : undefined;
+      };
+
+      const transactions = readSheet('Transactions', 0) || [];
+      const { data, error } = await safeFetchJson<{ message?: string; customAccounts?: any[] }>(
+        '/api/transactions/restore-backup',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            transactions,
+            categories: readSheet('Categories'),
+            budgets: readSheet('Budgets'),
+            udhaars: readSheet('Udhaar'),
+            investments: readSheet('Investments'),
+            fuelLogs: readSheet('FuelLogs'),
+            cardEmis: readSheet('CardEMIs'),
+            savingsTransfers: readSheet('SavingsTransfers'),
+            dailyItemLimits: readSheet('DailyLimits'),
+            piggyBankFunds: readSheet('PiggyBankFunds'),
+            accountSettings: readSheet('AccountSettings'),
+          }),
+        }
+      );
+      if (Array.isArray(data?.customAccounts)) {
+        syncCustomAccounts(data.customAccounts);
+      }
+      setRestoreMsg(error || data?.message || 'Backup restored.');
+      await onRefreshAll();
+    } catch (err: any) {
+      setRestoreMsg(err?.message || 'Unable to read workbook file.');
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const handleExportExcel = async () => {
@@ -986,7 +1016,7 @@ export const TelegramAiView: React.FC<TelegramAiViewProps> = ({
         <div>
           <h2 className="font-display text-base font-semibold text-white">Excel Workbook Backup &amp; Restore</h2>
           <p className="text-xs text-slate-400">
-            Export all transactions, budgets, udhaar records, fuel logs, and investments to `.xlsx` or restore from a workbook.
+            Export &amp; restore all 12 sheets — transactions, categories &amp; spend rules, budgets, udhaar &amp; partial settlements, investments, EMIs, fuel logs, goal funds, and account balances — in `.xlsx`.
           </p>
           {restoreMsg && <p className="text-xs text-emerald-400 mt-1">{restoreMsg}</p>}
         </div>

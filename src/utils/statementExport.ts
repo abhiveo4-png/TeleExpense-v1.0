@@ -23,6 +23,8 @@ function makeUniqueSheetName(raw: string, used: Set<string>): string {
 }
 
 function mapTransactionRow(t: Transaction, accountLabel?: string) {
+  const rimSettled = t.isReimbursement ? Number(t.reimbursementSettledAmount || 0) : 0;
+  const rimPending = t.isReimbursement ? Math.max(0, Number(t.amount || 0) - rimSettled) : 0;
   return {
     Date: t.date,
     Time: t.time || '',
@@ -36,24 +38,55 @@ function mapTransactionRow(t: Transaction, accountLabel?: string) {
     Member: t.telegramUser || '',
     Tags: Array.isArray(t.tags) ? t.tags.join(', ') : '',
     'Reimbursement Status': t.reimbursementStatus || '',
+    'Reimbursement Settled (INR)': t.isReimbursement ? rimSettled : '',
+    'Reimbursement Pending (INR)': t.isReimbursement ? rimPending : '',
+    'Settled In Account': t.settledInAccount || '',
+    'Settled Date': t.settledDate || '',
+    'CC Settled Card': t.ccSettledCardId || '',
     'Transaction ID': t.id,
   };
 }
 
-export function exportAccountStatementExcel(accountName: string, transactions: Transaction[]) {
-  const filtered = transactions
-    .filter(t => (t.account || 'AX Bank') === accountName || t.ccSettledCardId === accountName)
-    .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.time || '').localeCompare(a.time || ''))
+function buildRowsForAccount(accountId: string, accountLabel: string, txs: Transaction[]) {
+  return txs
+    .filter(
+      t =>
+        (t.account || 'AX Bank') === accountId ||
+        t.ccSettledCardId === accountId ||
+        (accountId === 'Wife' &&
+          t.type === 'expense' &&
+          (t.isWifeTransfer || t.isSavingsTransfer) &&
+          (t.account || 'AX Bank') !== 'Wife')
+    )
     .map(t => {
-      if (t.ccSettledCardId === accountName && (t.account || 'AX Bank') !== accountName) {
+      if (t.ccSettledCardId === accountId && (t.account || 'AX Bank') !== accountId) {
         return {
-          ...mapTransactionRow(t, accountName),
+          ...mapTransactionRow(t, accountLabel),
           Type: 'CARD PAYMENT CREDIT',
           Description: `${t.description} (Paid from ${t.account || 'Bank'})`,
         };
       }
-      return mapTransactionRow(t, accountName);
+      if (
+        accountId === 'Wife' &&
+        t.type === 'expense' &&
+        (t.isWifeTransfer || t.isSavingsTransfer) &&
+        (t.account || 'AX Bank') !== 'Wife'
+      ) {
+        return {
+          ...mapTransactionRow(t, accountLabel),
+          Type: 'TRANSFER IN',
+          Description: `${t.description} (Received from ${t.account || 'Bank'})`,
+        };
+      }
+      return mapTransactionRow(t, accountLabel);
     });
+}
+
+export function exportAccountStatementExcel(accountName: string, transactions: Transaction[]) {
+  const sorted = [...transactions].sort(
+    (a, b) => (b.date || '').localeCompare(a.date || '') || (b.time || '').localeCompare(a.time || '')
+  );
+  const filtered = buildRowsForAccount(accountName, accountName, sorted);
 
   const ws = XLSX.utils.json_to_sheet(
     filtered.length > 0
@@ -115,7 +148,9 @@ export function exportAllAccountsStatementExcel(
       'Short Label': 'Combined Summary',
       'Full Name': 'All Banks, Cash & Credit Cards',
       Type: 'Summary',
-      'Opening / Base (INR)': 0,
+      'Opening / Base (INR)': accountList
+        .filter(a => a.type === 'bank_account' || a.type === 'cash')
+        .reduce((s, a) => s + Number(a.baseBalance || 0), 0),
       'Total Credits / Repaid (INR)': accountList.reduce((s, a) => s + Number(a.credits || 0), 0),
       'Total Debits / Spent (INR)': accountList.reduce((s, a) => s + Number(a.debits || 0), 0),
       'Current Balance (INR)': Number(balances.totalBankCashBalance || 0),
@@ -212,9 +247,7 @@ export function exportAllAccountsStatementExcel(
 
   // 5. Individual sheet per account
   for (const acc of accountList) {
-    const accRows = sortedTxs
-      .filter(t => (t.account || 'AX Bank') === acc.accountId)
-      .map(t => mapTransactionRow(t, acc.shortName));
+    const accRows = buildRowsForAccount(acc.accountId, acc.shortName, sortedTxs);
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet(
@@ -268,7 +301,8 @@ export function exportUdhaarStatementExcel(udhaars: UdhaarRecord[]) {
       Account: u.account || '',
       Description: u.description || '',
       'Settled In Account': u.settledInAccount || '',
-      'Settled At': u.settledAt ? u.settledAt.slice(0, 10) : '',
+      'Settlements Count': (u.settlementHistory || []).length,
+      'Last Settled Date': u.settlementHistory?.[0]?.date || (u.settledAt ? u.settledAt.slice(0, 10) : ''),
       'Record ID': u.id,
     };
   });

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccountBalancesData,
   BotConfig,
@@ -23,14 +23,27 @@ import { Sidebar, WorkspaceTab } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { WorkspaceToolbar } from './components/WorkspaceToolbar';
 import { LedgerView } from './components/LedgerView';
-import { AccountsView } from './components/AccountsView';
-import { BudgetsGullakView } from './components/BudgetsGullakView';
-import { WealthKhataView } from './components/WealthKhataView';
-import { AnalyticsFuelView } from './components/AnalyticsFuelView';
-import { TelegramAiView } from './components/TelegramAiView';
 import { TransactionModal } from './components/TransactionModal';
-import { BulkImportModal } from './components/BulkImportModal';
 import { AuthModal } from './components/AuthModal';
+
+const AccountsView = lazy(() =>
+  import('./components/AccountsView').then((m) => ({ default: m.AccountsView }))
+);
+const BudgetsGullakView = lazy(() =>
+  import('./components/BudgetsGullakView').then((m) => ({ default: m.BudgetsGullakView }))
+);
+const WealthKhataView = lazy(() =>
+  import('./components/WealthKhataView').then((m) => ({ default: m.WealthKhataView }))
+);
+const AnalyticsFuelView = lazy(() =>
+  import('./components/AnalyticsFuelView').then((m) => ({ default: m.AnalyticsFuelView }))
+);
+const TelegramAiView = lazy(() =>
+  import('./components/TelegramAiView').then((m) => ({ default: m.TelegramAiView }))
+);
+const BulkImportModal = lazy(() =>
+  import('./components/BulkImportModal').then((m) => ({ default: m.BulkImportModal }))
+);
 
 const EMPTY_SUMMARY: FinancialSummary = {
   totalIncome: 0,
@@ -341,6 +354,13 @@ export default function App() {
               transactionCount={transactions.length}
             />
 
+            <Suspense
+              fallback={
+                <div className="surface-panel rounded-xl p-8 text-center text-xs text-slate-400">
+                  Loading workspace view...
+                </div>
+              }
+            >
             {activeTab === 'ledger' && (
               <LedgerView
                 transactions={transactions}
@@ -540,6 +560,7 @@ export default function App() {
                 }}
               />
             )}
+            </Suspense>
           </main>
         </div>
 
@@ -554,26 +575,30 @@ export default function App() {
           editingTx={editingTx}
         />
 
-        <BulkImportModal
-          isOpen={isBulkModalOpen}
-          onClose={() => setIsBulkModalOpen(false)}
-          categories={categories}
-          onImported={async (importedMonths) => {
-            let nextMonth = selectedMonth;
-            if (
-              selectedMonth !== 'all' &&
-              importedMonths.length > 0 &&
-              !importedMonths.includes(selectedMonth)
-            ) {
-              nextMonth = importedMonths.length > 1 ? 'all' : importedMonths[0];
-              setSelectedMonth(nextMonth);
-              try {
-                localStorage.setItem('teleexpense_selected_month', nextMonth);
-              } catch {}
-            }
-            await fetchAllWorkspaceData(nextMonth);
-          }}
-        />
+        {isBulkModalOpen && (
+          <Suspense fallback={null}>
+            <BulkImportModal
+              isOpen={isBulkModalOpen}
+              onClose={() => setIsBulkModalOpen(false)}
+              categories={categories}
+              onImported={async (importedMonths) => {
+                let nextMonth = selectedMonth;
+                if (
+                  selectedMonth !== 'all' &&
+                  importedMonths.length > 0 &&
+                  !importedMonths.includes(selectedMonth)
+                ) {
+                  nextMonth = importedMonths.length > 1 ? 'all' : importedMonths[0];
+                  setSelectedMonth(nextMonth);
+                  try {
+                    localStorage.setItem('teleexpense_selected_month', nextMonth);
+                  } catch {}
+                }
+                await fetchAllWorkspaceData(nextMonth);
+              }}
+            />
+          </Suspense>
+        )}
 
         <AuthModal
           isOpen={isAuthModalOpen}

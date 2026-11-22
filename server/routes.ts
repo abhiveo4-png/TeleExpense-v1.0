@@ -909,7 +909,7 @@ export function createApiRouter(): Router {
     };
 
     const header =
-      'Date,Time,Month,Type,Amount (INR),Category,Description,Payment Method,Account / Card,Source,Raw Message,Telegram User,Tags,Reimbursement Status,Transaction ID';
+      'Date,Time,Month,Type,Amount (INR),Category,Description,Payment Method,Account / Card,Source,Raw Message,Telegram User,Tags,Reimbursement Status,Reimbursement Settled (INR),Settled In Account,Settled Date,Transaction ID';
     const lines = store.transactions.map(t =>
       [
         t.date,
@@ -926,6 +926,9 @@ export function createApiRouter(): Router {
         t.telegramUser || '',
         Array.isArray(t.tags) ? t.tags.join(', ') : '',
         t.reimbursementStatus || '',
+        t.isReimbursement ? Number(t.reimbursementSettledAmount || 0) : '',
+        t.settledInAccount || '',
+        t.settledDate || '',
         t.id,
       ]
         .map(escapeCsv)
@@ -2446,12 +2449,67 @@ export function createApiRouter(): Router {
   router.get('/transactions/export-backup', (req: AuthedRequest, res) => {
     const store = getUserData(req.activeUser!.id);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.transactions), 'Transactions');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.budgets), 'Budgets');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.udhaars), 'Udhaar');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.fuelLogs), 'FuelLogs');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.investments), 'Investments');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.cardEmis), 'CardEMIs');
+
+    const txRows = store.transactions.map(t => ({
+      ...t,
+      tags: Array.isArray(t.tags) ? t.tags.join(', ') : t.tags || '',
+    }));
+
+    const catRows = (store.categories || []).map(c => ({
+      ...c,
+      keywords: Array.isArray(c.keywords) ? c.keywords.join(', ') : c.keywords || '',
+      excludeFromBudget: Boolean(c.excludeFromBudget),
+    }));
+
+    const udhaarRows = (store.udhaars || []).map(u => ({
+      ...u,
+      settlementHistoryJson:
+        Array.isArray(u.settlementHistory) && u.settlementHistory.length > 0
+          ? JSON.stringify(u.settlementHistory)
+          : '',
+      settlementHistory: undefined,
+    }));
+
+    const udhaarSettlementRows = (store.udhaars || []).flatMap(u =>
+      (u.settlementHistory || []).map(s => ({
+        udhaarId: u.id,
+        personName: u.personName,
+        udhaarType: u.type,
+        date: s.date,
+        amount: Number(s.amount || 0),
+        account: s.account,
+        notes: s.notes || '',
+        linkedTxId: s.linkedTxId || '',
+      }))
+    );
+
+    const dailyLimitRows = (store.dailyItemLimits || []).map(d => ({
+      ...d,
+      keywords: Array.isArray(d.keywords) ? d.keywords.join(', ') : d.keywords || '',
+    }));
+
+    const accountSettingsRows = [
+      { key: 'accountBaseBalances', value: JSON.stringify(store.accountBaseBalances || {}) },
+      { key: 'accountBalanceSetTimestamps', value: JSON.stringify(store.accountBalanceSetTimestamps || {}) },
+      { key: 'cardCreditLimits', value: JSON.stringify(store.cardCreditLimits || {}) },
+      { key: 'wifeBaseBalance', value: String(Number(store.wifeBaseBalance || 0)) },
+      { key: 'wifeBalanceSetTimestamp', value: store.wifeBalanceSetTimestamp || '' },
+      { key: 'customAccounts', value: JSON.stringify(store.customAccounts || []) },
+    ];
+
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(txRows), 'Transactions');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(catRows), 'Categories');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.budgets || []), 'Budgets');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(udhaarRows), 'Udhaar');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(udhaarSettlementRows), 'UdhaarSettlements');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.investments || []), 'Investments');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.fuelLogs || []), 'FuelLogs');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.cardEmis || []), 'CardEMIs');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.savingsTransfers || []), 'SavingsTransfers');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dailyLimitRows), 'DailyLimits');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(store.piggyBankFunds || []), 'PiggyBankFunds');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(accountSettingsRows), 'AccountSettings');
+
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     res.setHeader('Content-Disposition', `attachment; filename="teleexpense-backup-${getIstDateTime().date}.xlsx"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -2461,53 +2519,250 @@ export function createApiRouter(): Router {
   router.post('/transactions/restore-backup', (req: AuthedRequest, res) => {
     const user = req.activeUser!;
     const store = getUserData(user.id);
-    const { transactions: incomingTxs, budgets: incomingBudgets } = req.body || {};
+    const body = req.body || {};
+    const {
+      transactions: incomingTxs,
+      budgets: incomingBudgets,
+      categories: incomingCategories,
+      udhaars: incomingUdhaars,
+      investments: incomingInvestments,
+      fuelLogs: incomingFuelLogs,
+      cardEmis: incomingEmis,
+      savingsTransfers: incomingSavings,
+      dailyItemLimits: incomingDailyLimits,
+      piggyBankFunds: incomingPiggyFunds,
+      accountSettings: incomingAccountSettings,
+    } = body;
+
     if (!Array.isArray(incomingTxs)) {
       res.status(400).json({ error: 'Transactions array required for restore.' });
       return;
     }
 
+    const toBool = (v: unknown): boolean | undefined => {
+      if (v === undefined || v === null || v === '') return undefined;
+      if (typeof v === 'boolean') return v;
+      const s = String(v).trim().toLowerCase();
+      if (s === 'true' || s === '1' || s === 'yes') return true;
+      if (s === 'false' || s === '0' || s === 'no') return false;
+      return undefined;
+    };
+
     const existingIds = new Set(store.transactions.map(t => t.id));
     let restoredCount = 0;
     for (const raw of incomingTxs) {
+      if (!raw || typeof raw !== 'object') continue;
       const id = String(raw.id || `tx_imp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`);
       if (existingIds.has(id)) continue;
       const amt = Number(raw.amount || 0);
       if (!Number.isFinite(amt) || amt <= 0) continue;
+
+      const tags = Array.isArray(raw.tags)
+        ? raw.tags.map((x: unknown) => String(x).trim()).filter(Boolean)
+        : typeof raw.tags === 'string' && raw.tags.trim()
+        ? raw.tags.split(',').map((x: string) => x.trim()).filter(Boolean)
+        : undefined;
+
+      existingIds.add(id);
       store.transactions.push({
         ...raw,
         id,
         userId: user.id,
-        type: raw.type === 'income' ? 'income' : 'expense',
+        type: String(raw.type).toLowerCase() === 'income' ? 'income' : 'expense',
         amount: amt,
         category: String(raw.category || 'Other Expense'),
         description: String(raw.description || 'Imported entry'),
         date: String(raw.date || getIstDateTime().date),
         source: raw.source || 'import',
+        tags,
+        isReimbursement: toBool(raw.isReimbursement),
+        isReimbursementInflow: toBool(raw.isReimbursementInflow),
+        reimbursementSettledAmount:
+          raw.reimbursementSettledAmount !== undefined && raw.reimbursementSettledAmount !== ''
+            ? Number(raw.reimbursementSettledAmount)
+            : undefined,
+        isSavingsTransfer: toBool(raw.isSavingsTransfer),
+        isWifeTransfer: toBool(raw.isWifeTransfer),
+        isCcPayment: toBool(raw.isCcPayment),
+        isInvestment: toBool(raw.isInvestment),
+        isUdhaarLent: toBool(raw.isUdhaarLent),
+        isUdhaarRecovery: toBool(raw.isUdhaarRecovery),
+        isUdhaarRepaid: toBool(raw.isUdhaarRepaid),
         createdAt: raw.createdAt || new Date().toISOString(),
       });
       restoredCount++;
     }
 
+    let categoriesUpdated = 0;
+    if (Array.isArray(incomingCategories)) {
+      for (const rawCat of incomingCategories) {
+        if (!rawCat?.name) continue;
+        const keywords = Array.isArray(rawCat.keywords)
+          ? rawCat.keywords.map((k: unknown) => String(k).trim()).filter(Boolean)
+          : typeof rawCat.keywords === 'string'
+          ? rawCat.keywords.split(',').map((k: string) => k.trim()).filter(Boolean)
+          : [];
+        const excl = toBool(rawCat.excludeFromBudget);
+        const existingCat = store.categories.find(
+          c => c.id === rawCat.id || c.name.toLowerCase() === String(rawCat.name).trim().toLowerCase()
+        );
+        if (existingCat) {
+          if (excl !== undefined) existingCat.excludeFromBudget = excl;
+          if (keywords.length > 0) existingCat.keywords = keywords;
+          if (rawCat.color) existingCat.color = String(rawCat.color);
+          categoriesUpdated++;
+        } else {
+          store.categories.push({
+            id: String(rawCat.id || `cat_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`),
+            name: String(rawCat.name).trim(),
+            type: rawCat.type === 'income' || rawCat.type === 'both' ? rawCat.type : 'expense',
+            icon: String(rawCat.icon || 'Tag'),
+            color: String(rawCat.color || '#38BDF8'),
+            keywords,
+            isCustom: toBool(rawCat.isCustom) ?? true,
+            excludeFromBudget: excl,
+          });
+          categoriesUpdated++;
+        }
+      }
+    }
+
     if (Array.isArray(incomingBudgets)) {
       for (const b of incomingBudgets) {
-        if (!b.category) continue;
+        if (!b?.category) continue;
         const found = store.budgets.find(x => x.category.toLowerCase() === String(b.category).toLowerCase());
         if (found) found.limit = Number(b.limit || 0);
         else store.budgets.push({ category: String(b.category), limit: Number(b.limit || 0), period: 'monthly' });
       }
     }
 
-    store.transactions.sort((a, b) => b.date.localeCompare(a.date));
+    const mergeSheetById = <T extends { id?: string; userId?: string }>(target: T[], src: unknown, normalize?: (r: any) => T | null) => {
+      if (!Array.isArray(src)) return 0;
+      const seen = new Set(target.map(x => x.id).filter(Boolean));
+      let added = 0;
+      for (const raw of src) {
+        if (!raw || typeof raw !== 'object') continue;
+        const item = normalize ? normalize(raw) : ({ ...raw, userId: user.id } as T);
+        if (!item) continue;
+        if (item.id && seen.has(item.id)) continue;
+        if (item.id) seen.add(item.id);
+        target.push(item);
+        added++;
+      }
+      return added;
+    };
+
+    const restoredUdhaars = mergeSheetById(store.udhaars, incomingUdhaars, (raw) => {
+      if (!raw.personName || !Number(raw.amount)) return null;
+      let settlementHistory = Array.isArray(raw.settlementHistory) ? raw.settlementHistory : undefined;
+      if (!settlementHistory && typeof raw.settlementHistoryJson === 'string' && raw.settlementHistoryJson.trim()) {
+        try {
+          const parsed = JSON.parse(raw.settlementHistoryJson);
+          if (Array.isArray(parsed)) settlementHistory = parsed;
+        } catch {}
+      }
+      const out: any = {
+        ...raw,
+        id: String(raw.id || `udh_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`),
+        userId: user.id,
+        amount: Number(raw.amount),
+        settledAmount: Number(raw.settledAmount || 0),
+        settlementHistory,
+      };
+      delete out.settlementHistoryJson;
+      return out;
+    });
+
+    const restoredInvestments = mergeSheetById(store.investments, incomingInvestments, (raw) =>
+      raw.name ? { ...raw, id: String(raw.id || `inv_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`), userId: user.id, amount: Number(raw.amount || 0) } : null
+    );
+
+    const restoredFuel = mergeSheetById(store.fuelLogs, incomingFuelLogs, (raw) =>
+      Number(raw.fuelAmount) > 0 ? { ...raw, id: String(raw.id || `fuel_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`), userId: user.id, fuelAmount: Number(raw.fuelAmount), odometer: Number(raw.odometer || 0) } : null
+    );
+    if (restoredFuel > 0) store.fuelLogs = recalculateFuelLogs(store.fuelLogs);
+
+    const restoredEmis = mergeSheetById(store.cardEmis, incomingEmis, (raw) =>
+      raw.title ? { ...raw, id: String(raw.id || `emi_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`), userId: user.id, monthlyAmount: Number(raw.monthlyAmount || 0), totalMonths: Number(raw.totalMonths || 1), paidMonths: Number(raw.paidMonths || 0) } : null
+    );
+
+    const restoredSavings = mergeSheetById(store.savingsTransfers, incomingSavings, (raw) =>
+      Number(raw.amount) > 0 ? { ...raw, id: String(raw.id || `sav_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`), userId: user.id, amount: Number(raw.amount) } : null
+    );
+
+    mergeSheetById(store.dailyItemLimits, incomingDailyLimits, (raw) =>
+      raw.itemName
+        ? {
+            ...raw,
+            id: String(raw.id || `dl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`),
+            userId: user.id,
+            dailyLimit: Number(raw.dailyLimit || 0),
+            keywords: Array.isArray(raw.keywords)
+              ? raw.keywords
+              : typeof raw.keywords === 'string'
+              ? raw.keywords.split(',').map((k: string) => k.trim()).filter(Boolean)
+              : [],
+            isActive: toBool(raw.isActive) ?? true,
+          }
+        : null
+    );
+
+    mergeSheetById(store.piggyBankFunds, incomingPiggyFunds, (raw) =>
+      raw.name ? { ...raw, id: String(raw.id || `pb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`), userId: user.id, currentBalance: Number(raw.currentBalance || 0) } : null
+    );
+
+    if (Array.isArray(incomingAccountSettings)) {
+      const kv = new Map<string, string>();
+      for (const row of incomingAccountSettings) {
+        if (row?.key) kv.set(String(row.key), String(row.value ?? ''));
+      }
+      const safeParse = <T,>(s: string | undefined): T | null => {
+        if (!s) return null;
+        try {
+          return JSON.parse(s) as T;
+        } catch {
+          return null;
+        }
+      };
+      const baseMap = safeParse<Record<string, number>>(kv.get('accountBaseBalances'));
+      if (baseMap && typeof baseMap === 'object') {
+        store.accountBaseBalances = { ...baseMap, ...store.accountBaseBalances };
+      }
+      const limitMap = safeParse<Record<string, number>>(kv.get('cardCreditLimits'));
+      if (limitMap && typeof limitMap === 'object') {
+        store.cardCreditLimits = { ...limitMap, ...store.cardCreditLimits };
+      }
+      const wifeBase = Number(kv.get('wifeBaseBalance'));
+      if (Number.isFinite(wifeBase) && (store.wifeBaseBalance || 0) === 0 && wifeBase !== 0) {
+        store.wifeBaseBalance = wifeBase;
+      }
+      const customAccs = safeParse<UserDataStore['customAccounts']>(kv.get('customAccounts'));
+      if (Array.isArray(customAccs)) {
+        mergeSheetById(store.customAccounts, customAccs);
+      }
+    }
+
+    syncBudgetsWithCategories(store);
+    store.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
     saveUserData(user.id, store);
+
+    const extraParts = [
+      restoredUdhaars ? `${restoredUdhaars} udhaar` : '',
+      restoredInvestments ? `${restoredInvestments} investments` : '',
+      restoredEmis ? `${restoredEmis} card EMIs` : '',
+      restoredSavings ? `${restoredSavings} transfers` : '',
+      categoriesUpdated ? `${categoriesUpdated} categories` : '',
+    ].filter(Boolean);
+
     res.json({
       success: true,
-      message: `Restored ${restoredCount} new transactions.`,
+      message: `Restored ${restoredCount} new transactions${extraParts.length > 0 ? ` (${extraParts.join(', ')})` : ''}.`,
       restoredCount,
-      categoriesCreated: 0,
+      categoriesCreated: categoriesUpdated,
       transactions: store.transactions,
       categories: store.categories,
       budgets: store.budgets,
+      customAccounts: store.customAccounts,
       summary: computeFinancialSummary(store),
     });
   });
